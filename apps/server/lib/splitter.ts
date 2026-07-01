@@ -106,7 +106,21 @@ export async function splitMarkdownDocument(
   console.log('Sections:', sections.length);
   console.log('Sections:', JSON.stringify(sections, null, 2));
 
-  const documentTitle = sections.length > 0 ? sections[0].headers[0] : null;
+  const documentTitle =
+    sections.length > 0
+      ? (() => {
+          for (let level = 0; level < 6; level++) {
+            for (const section of sections) {
+              if (section.headers[level] !== null) {
+                return section.headers[level];
+              }
+            }
+          }
+          return null;
+        })()
+      : null;
+
+  console.log('Complete sections', sections);
 
   const docs: Document<ChunkMetadata>[] = [];
 

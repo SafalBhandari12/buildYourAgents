@@ -1,22 +1,24 @@
-import { Env, Hono } from 'hono';
+import { Hono } from 'hono';
 import { streamText } from 'hono/streaming';
 import { openaiMiddleware } from '../lib/gpt';
 import { chatInputSchema } from './schema';
-import { llammaParseMiddleware } from '../lib/lammaParse';
+import { llammaParseMiddleware, parseFile } from '../lib/llamaParse';
 import { asyncHandler, globalErrorHandler } from '../lib/errorHandler';
 import { BadRequestError } from '../lib/errors';
-import { AppEnv, llamaParseEnv, openAiEnv } from '../lib/env';
+import { AppEnv, chatEnv, cloudflareAiEnv, llamaParseEnv, openAiEnv } from '../lib/env';
 import { splitMarkdownDocument } from '../lib/splitter';
+import { vectorizeDocuments } from '../lib/vectorizeDocuments';
+import { semanticSearch } from '../lib/search';
 
-const app = new Hono<Env>();
+const app = new Hono<AppEnv>();
 
-// Register the global error handler for the app
 app.onError(globalErrorHandler);
 
 app.post(
   '/ingest',
   llammaParseMiddleware,
-  asyncHandler<llamaParseEnv>(async (c) => {
+  asyncHandler<llamaParseEnv & cloudflareAiEnv>(async (c) => {
+    c.env.VECTORIZE.deleteByIds(['*']);
     const form = await c.req.formData();
     const file = form.get('file');
 
@@ -26,49 +28,48 @@ app.post(
 
     const llamaParse = c.get('llamaParse');
 
-    const start = Date.now();
+    const markdown = await parseFile(llamaParse, file);
 
-    const fileObj = await llamaParse.files.create({
-      file,
-      purpose: 'parse',
-    });
+    const chunks = await splitMarkdownDocument(markdown, file.name);
 
-    console.log('File uploaded in', Date.now() - start, 'ms');
+    await vectorizeDocuments(c.env, chunks);
 
-    const result = await llamaParse.parsing.parse({
-      file_id: fileObj.id,
-      tier: 'cost_effective',
-      expand: ['markdown_full'],
-      version: '2026-06-26',
-    });
-    console.log('File parsed in', Date.now() - start, 'ms');
-
-    if (result.markdown_full === undefined || result.markdown_full === null) {
-      throw new BadRequestError('Parsing failed: No markdown content returned');
-    }
-
-    const chunks = await splitMarkdownDocument(result.markdown_full, file.name);
-    console.log('File split into chunks:', chunks.length);
-    console.log('File split into chunks in', Date.now() - start, 'ms');
-    console.log('Chunks', JSON.stringify(chunks, null, 2));
-
-    return c.json({ msg: 'Hello world!!', result: result.markdown_full });
+    return c.json({ msg: 'Hello world from cloudflare ai' });
   }),
 );
 
 app.post(
   '/chat',
   openaiMiddleware,
-  asyncHandler<openAiEnv>(async (c) => {
+  asyncHandler<chatEnv>(async (c) => {
     const body = await c.req.json();
     const { message } = await chatInputSchema.parseAsync(body);
+
+    const results = await semanticSearch(c.env.AI, c.env.VECTORIZE, message);
+
+    const context =
+      results.length > 0
+        ? results.map((r) => `[${r.source}] ${r.pageContent}`).join('\n\n---\n\n')
+        : 'No relevant context found.';
 
     const ai = c.get('openai');
 
     return streamText(c, async (streamWriter) => {
       const llmResponse = await ai.responses.create({
         model: 'gpt-5.4-mini',
-        input: message,
+        input: [
+          {
+            role: 'system',
+            content: `You are a helpful assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, just answer based on your own knowledge.
+
+Context:
+${context}`,
+          },
+          {
+            role: 'user',
+            content: message,
+          },
+        ],
         stream: true,
       });
 
