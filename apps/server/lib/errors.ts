@@ -14,10 +14,10 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.details = details;
     this.name = this.constructor.name;
-    
+
     // Maintain proper stack trace in V8 environments safely
     const errorConstructor = Error as unknown as ErrorWithCaptureStackTrace;
-    if (typeof errorConstructor.captureStackTrace === "function") {
+    if (typeof errorConstructor.captureStackTrace === 'function') {
       errorConstructor.captureStackTrace(this, this.constructor);
     }
   }
@@ -27,7 +27,7 @@ export class AppError extends Error {
  * 400 Bad Request Error
  */
 export class BadRequestError extends AppError {
-  constructor(message: string = "Bad Request", details?: unknown) {
+  constructor(message: string = 'Bad Request', details?: unknown) {
     super(message, 400, details);
   }
 }
@@ -36,7 +36,7 @@ export class BadRequestError extends AppError {
  * 401 Unauthorized Error
  */
 export class UnauthorizedError extends AppError {
-  constructor(message: string = "Unauthorized", details?: unknown) {
+  constructor(message: string = 'Unauthorized', details?: unknown) {
     super(message, 401, details);
   }
 }
@@ -45,7 +45,7 @@ export class UnauthorizedError extends AppError {
  * 403 Forbidden Error
  */
 export class ForbiddenError extends AppError {
-  constructor(message: string = "Forbidden", details?: unknown) {
+  constructor(message: string = 'Forbidden', details?: unknown) {
     super(message, 403, details);
   }
 }
@@ -54,7 +54,7 @@ export class ForbiddenError extends AppError {
  * 404 Not Found Error
  */
 export class NotFoundError extends AppError {
-  constructor(message: string = "Resource Not Found", details?: unknown) {
+  constructor(message: string = 'Resource Not Found', details?: unknown) {
     super(message, 404, details);
   }
 }
@@ -63,7 +63,7 @@ export class NotFoundError extends AppError {
  * 500 Internal Server Error
  */
 export class InternalServerError extends AppError {
-  constructor(message: string = "Internal Server Error", details?: unknown) {
+  constructor(message: string = 'Internal Server Error', details?: unknown) {
     super(message, 500, details);
   }
 }

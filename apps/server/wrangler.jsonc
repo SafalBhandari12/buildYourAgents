@@ -3,8 +3,13 @@
   "name": "buildyouragent",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-27",
-  "compatibility_flags": [
-    "nodejs_compat"
+  "compatibility_flags": ["nodejs_compat"],
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "build-your-agents",
+      "remote": true,
+    },
   ],
   // "vars": {
   //   "MY_VAR": "my-variable"
@@ -28,9 +33,10 @@
   //     "database_id": ""
   //   }
   // ],
-  // "ai": {
-  //   "binding": "AI"
-  // },
+  "ai": {
+    "binding": "AI",
+    "remote": true,
+  },
   // "observability": {
   //   "enabled": true,
   //   "head_sampling_rate": 1

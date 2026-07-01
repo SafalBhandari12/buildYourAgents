@@ -4,9 +4,13 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@langchain/core": "^1.2.1",
+    "@langchain/textsplitters": "^1.0.1",
     "@llamaindex/llama-cloud": "^2.9.1",
     "hono": "^4.12.27",
     "openai": "^6.45.0",
@@ -14,6 +18,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260627.1",
+    "prettier": "^3.7.4",
     "wrangler": "^4.4.0"
   }
 }
