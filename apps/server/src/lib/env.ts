@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import LlamaCloud from '@llamaindex/llama-cloud';
-import { Ai, VectorizeIndex } from '@cloudflare/workers-types';
+import { Ai, VectorizeIndex, D1Database } from '@cloudflare/workers-types';
 
 export type llamaParseEnv = {
   Bindings: {
@@ -36,6 +36,12 @@ export type chatEnv = {
 export type huggingfaceEnv = {
   Bindings: {
     HUGGINGFACE_API_KEY: string;
+  };
+};
+
+export type DBEnv = {
+  Bindings: {
+    DB: D1Database;
   };
 };
 

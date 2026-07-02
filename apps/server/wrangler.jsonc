@@ -37,6 +37,14 @@
     "binding": "AI",
     "remote": true,
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "buildyouragents",
+      "database_id": "3b140aab-9508-406a-96cb-db55c2965328",
+      "remote": true,
+    },
+  ],
   // "observability": {
   //   "enabled": true,
   //   "head_sampling_rate": 1

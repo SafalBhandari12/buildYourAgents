@@ -13,6 +13,7 @@
     "@langchain/core": "^1.2.1",
     "@langchain/textsplitters": "^1.0.1",
     "@llamaindex/llama-cloud": "^2.9.1",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.12.27",
     "openai": "^6.45.0",
     "zod": "^4.4.3"
@@ -20,7 +21,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260627.1",
     "@types/node": "^22.15.3",
+    "drizzle-kit": "^0.31.10",
     "prettier": "^3.7.4",
-    "wrangler": "^4.4.0"
+    "wrangler": "^4.106.0"
   }
 }
