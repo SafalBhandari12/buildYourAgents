@@ -9,7 +9,8 @@ import { BetterAuthEnv, chatEnv, cloudflareAiEnv, DBEnv, llamaParseEnv } from '.
 import { splitMarkdownDocument } from './lib/splitter';
 import { vectorizeDocuments } from './lib/vectorizeDocuments';
 import { semanticSearch } from './lib/search';
-import { createAuth } from '../auth';
+import { auth } from '../auth';
+import { authenticationMiddleware } from './middleware/authenticationMiddleware';
 
 const app = new Hono<Env>();
 
@@ -17,9 +18,9 @@ app.onError(globalErrorHandler);
 
 app.post(
   '/ingest',
+  authenticationMiddleware,
   llammaParseMiddleware,
   asyncHandler<llamaParseEnv & cloudflareAiEnv>(async (c) => {
-    c.env.VECTORIZE.deleteByIds(['*']);
     const form = await c.req.formData();
     const file = form.get('file');
 
@@ -87,8 +88,8 @@ app.on(
   ['GET', 'POST'],
   '/api/auth/*',
   asyncHandler<BetterAuthEnv>(async (c) => {
-    const auth = createAuth(c.env);
-    return await auth.handler(c.req.raw);
+    const client = auth(c.env);
+    return await client.handler(c.req.raw);
   }),
 );
 

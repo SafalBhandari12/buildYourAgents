@@ -6,7 +6,7 @@ import { BetterAuthEnv } from './src/lib/env';
 import { sendEmail } from './src/lib/email';
 import { jwt } from 'better-auth/plugins/jwt';
 
-export function createAuth(env: BetterAuthEnv['Bindings']) {
+export function auth(env: BetterAuthEnv['Bindings']) {
   const db = drizzle(env.DB, { schema });
   try {
     return betterAuth({

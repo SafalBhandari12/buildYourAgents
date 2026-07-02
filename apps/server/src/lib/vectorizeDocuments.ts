@@ -20,9 +20,6 @@ export async function vectorizeDocuments(
       pageContent: doc.pageContent,
     },
   }));
-  console.log('Vectors:', vectors.length);
-
-  console.log(vectors[0], { depth: null });
 
   await env.VECTORIZE.upsert(vectors);
 }

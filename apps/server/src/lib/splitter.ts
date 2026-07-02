@@ -103,8 +103,6 @@ export async function splitMarkdownDocument(
   source: string,
 ): Promise<Document<ChunkMetadata>[]> {
   const sections = parseMarkdown(markdown);
-  console.log('Sections:', sections.length);
-  console.log('Sections:', JSON.stringify(sections, null, 2));
 
   const documentTitle =
     sections.length > 0
@@ -120,7 +118,6 @@ export async function splitMarkdownDocument(
         })()
       : null;
 
-  console.log('Complete sections', sections);
 
   const docs: Document<ChunkMetadata>[] = [];
 
