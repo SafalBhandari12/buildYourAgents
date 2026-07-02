@@ -1,5 +1,5 @@
-import { drizzle, DrizzleD1Database } from 'drizzle-orm/d1';
-import * as blogSchema from './schema';
+import { drizzle } from 'drizzle-orm/d1';
+import * as schema from './schema';
 
 /**
  * Connects to Cloudflare D1 and returns a typed Drizzle ORM instance.
@@ -7,9 +7,7 @@ import * as blogSchema from './schema';
  */
 export function getDb(d1: D1Database) {
   return drizzle(d1, {
-    schema: {
-      ...blogSchema,
-    },
+    schema: { ...schema },
   });
 }
 

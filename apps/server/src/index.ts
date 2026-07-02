@@ -1,18 +1,17 @@
-import { Hono } from 'hono';
+import { Env, Hono } from 'hono';
 import { streamText } from 'hono/streaming';
 import { openaiMiddleware } from './lib/gpt';
 import { chatInputSchema } from './schema';
 import { llammaParseMiddleware, parseFile } from './lib/llamaParse';
 import { asyncHandler, globalErrorHandler } from './lib/errorHandler';
 import { BadRequestError } from './lib/errors';
-import { AppEnv, chatEnv, cloudflareAiEnv, DBEnv, llamaParseEnv } from './lib/env';
+import { BetterAuthEnv, chatEnv, cloudflareAiEnv, DBEnv, llamaParseEnv } from './lib/env';
 import { splitMarkdownDocument } from './lib/splitter';
 import { vectorizeDocuments } from './lib/vectorizeDocuments';
 import { semanticSearch } from './lib/search';
-import { getDb } from './db';
-import { posts, users } from './db/schema';
+import { createAuth } from '../auth';
 
-const app = new Hono<AppEnv>();
+const app = new Hono<Env>();
 
 app.onError(globalErrorHandler);
 
@@ -81,6 +80,15 @@ ${context}`,
         }
       }
     });
+  }),
+);
+
+app.on(
+  ['GET', 'POST'],
+  '/api/auth/*',
+  asyncHandler<BetterAuthEnv>(async (c) => {
+    const auth = createAuth(c.env);
+    return await auth.handler(c.req.raw);
   }),
 );
 

@@ -45,10 +45,20 @@ export type DBEnv = {
   };
 };
 
-export type AppEnv = {
-  Bindings: llamaParseEnv['Bindings'] &
-    openAiEnv['Bindings'] &
-    cloudflareAiEnv['Bindings'] &
-    huggingfaceEnv['Bindings'];
-  Variables: llamaParseEnv['Variables'] & openAiEnv['Variables'];
+export type maileriooEnv = {
+  Bindings: {
+    MAILEROO_API_KEY: string;
+    MAIL_FROM_EMAIL: string;
+  };
 };
+
+export type BetterAuthEnv = DBEnv &
+  maileriooEnv & {
+    Bindings: {
+      BETTER_AUTH_SECRET: string;
+      BETTER_AUTH_URL: string;
+    };
+    Variables: {
+      userId: string;
+    };
+  };
