@@ -17,6 +17,16 @@ export function auth(env: BetterAuthEnv['Bindings']) {
       }),
       secret: env.BETTER_AUTH_SECRET,
       baseURL: env.BETTER_AUTH_URL,
+      user: {
+        additionalFields: {
+          tier: {
+            type: 'string',
+            required: true,
+            defaultValue: 'free',
+            input: false,
+          },
+        },
+      },
       emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,

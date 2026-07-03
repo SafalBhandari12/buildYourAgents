@@ -13,6 +13,7 @@ export async function semanticSearch(
   ai: Ai,
   vectorize: VectorizeIndex,
   query: string,
+  userId?: string,
   topK = 5,
 ): Promise<SearchResult[]> {
   const [embedding] = await generateEmbeddings(ai, [query]);
@@ -21,6 +22,7 @@ export async function semanticSearch(
     topK,
     returnMetadata: true,
     returnValues: false,
+    filter: userId ? { userId } : undefined,
   });
 
   return results.matches.map((match) => ({

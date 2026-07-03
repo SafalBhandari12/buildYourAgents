@@ -1,11 +1,13 @@
 import LlamaCloud from '@llamaindex/llama-cloud';
 import { createMiddleware } from 'hono/factory';
-import { llamaParseEnv } from './env';
+import { BetterAuthEnv, llamaParseEnv } from './env';
 
-export const llammaParseMiddleware = createMiddleware<llamaParseEnv>(async (c, next) => {
-  c.set('llamaParse', new LlamaCloud({ apiKey: c.env.LLAMAPARSE_API_KEY }));
-  await next();
-});
+export const llammaParseMiddleware = createMiddleware<llamaParseEnv & BetterAuthEnv>(
+  async (c, next) => {
+    c.set('llamaParse', new LlamaCloud({ apiKey: c.env.LLAMAPARSE_API_KEY }));
+    await next();
+  },
+);
 
 export async function parseFile(llamaParse: LlamaCloud, file: File): Promise<string> {
   const fileObj = await llamaParse.files.create({

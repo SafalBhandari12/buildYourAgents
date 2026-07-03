@@ -9,8 +9,11 @@ import { BetterAuthEnv, chatEnv, cloudflareAiEnv, DBEnv, llamaParseEnv } from '.
 import { splitMarkdownDocument } from './lib/splitter';
 import { vectorizeDocuments } from './lib/vectorizeDocuments';
 import { semanticSearch } from './lib/search';
+import { checkMetrics, deductMetrics, refundMetrics } from './lib/metrics';
 import { auth } from '../auth';
 import { authenticationMiddleware } from './middleware/authenticationMiddleware';
+
+import { readPdfPages } from 'pdf-text-reader';
 
 const app = new Hono<Env>();
 
@@ -20,23 +23,48 @@ app.post(
   '/ingest',
   authenticationMiddleware,
   llammaParseMiddleware,
-  asyncHandler<llamaParseEnv & cloudflareAiEnv>(async (c) => {
+  asyncHandler<llamaParseEnv & cloudflareAiEnv & BetterAuthEnv>(async (c) => {
     const form = await c.req.formData();
     const file = form.get('file');
+    const user = c.get('user');
+
+    if (user.tier !== 'free') {
+      return c.json({ error: 'Only free tier users can ingest documents' }, 403);
+    }
 
     if (!(file instanceof File)) {
       throw new BadRequestError('Missing file: Please upload a valid file');
     }
 
+    const bytes = await file.arrayBuffer();
+    const pdfPages = await readPdfPages(bytes);
+    const pages = pdfPages.length;
+
+    const MAX_PAGES = 10;
+    if (pages > MAX_PAGES) {
+      throw new BadRequestError(`File has too many pages. Maximum allowed is ${MAX_PAGES}`);
+    }
+
+    // Check page quota before any external API calls
+    await checkMetrics(c.env.DB, user.id, pages, 0);
+
     const llamaParse = c.get('llamaParse');
 
-    const markdown = await parseFile(llamaParse, file);
+    try {
+      const markdown = await parseFile(llamaParse, file);
+      const chunks = await splitMarkdownDocument(markdown, file.name, user.id, user.tier);
 
-    const chunks = await splitMarkdownDocument(markdown, file.name);
+      // Check + deduct chunks (only known after split)
+      await checkMetrics(c.env.DB, user.id, 0, chunks.length);
+      await deductMetrics(c.env.DB, user.id, pages, chunks.length);
 
-    await vectorizeDocuments(c.env, chunks);
+      await vectorizeDocuments(c.env, chunks);
 
-    return c.json({ msg: 'Hello world from cloudflare ai' });
+      return c.json({ msg: 'Document ingested successfully', pages, chunks: chunks.length });
+    } catch (err) {
+      await refundMetrics(c.env.DB, user.id, pages, 0);
+      throw err;
+    }
   }),
 );
 
@@ -47,7 +75,7 @@ app.post(
     const body = await c.req.json();
     const { message } = await chatInputSchema.parseAsync(body);
 
-    const results = await semanticSearch(c.env.AI, c.env.VECTORIZE, message);
+    const results = await semanticSearch(c.env.AI, c.env.VECTORIZE, message, undefined);
 
     const context =
       results.length > 0

@@ -4,6 +4,7 @@ import { Document } from '@langchain/core/documents';
 export interface ChunkMetadata {
   source: string;
   documentTitle: string | null;
+  userId: string;
 
   h1: string | null;
   h2: string | null;
@@ -101,7 +102,12 @@ function parseMarkdown(markdown: string): Section[] {
 export async function splitMarkdownDocument(
   markdown: string,
   source: string,
+  userId: string,
+  tier?: string,
 ): Promise<Document<ChunkMetadata>[]> {
+  if (tier === 'free') {
+    return splitSimpleText(markdown, source, userId);
+  }
   const sections = parseMarkdown(markdown);
 
   const documentTitle =
@@ -146,7 +152,7 @@ export async function splitMarkdownDocument(
         .filter(Boolean)
         .join('\n');
 
-      const dataString = `${source}:${headerPath}:${i}`;
+      const dataString = `${userId}:${source}:${headerPath}:${i}`;
 
       const msgUint8 = new TextEncoder().encode(dataString);
 
@@ -161,7 +167,7 @@ export async function splitMarkdownDocument(
 
           metadata: {
             source,
-
+            userId,
             documentTitle,
 
             h1: section.headers[0],
@@ -184,6 +190,43 @@ export async function splitMarkdownDocument(
         }),
       );
     }
+  }
+
+  return docs;
+}
+
+async function splitSimpleText(
+  text: string,
+  source: string,
+  userId: string,
+): Promise<Document<ChunkMetadata>[]> {
+  const pieces = await splitter.splitText(text);
+
+  const docs: Document<ChunkMetadata>[] = [];
+
+  for (let i = 0; i < pieces.length; i++) {
+    const dataString = `${userId}:${source}:${i}`;
+    const msgUint8 = new TextEncoder().encode(dataString);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const chunkId = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+    docs.push(
+      new Document({
+        pageContent: pieces[i].trim(),
+        metadata: {
+          source,
+          userId,
+          documentTitle: null,
+          h1: null, h2: null, h3: null, h4: null, h5: null, h6: null,
+          title: null,
+          headerPath: 'Direct',
+          chunkIndex: i,
+          totalChunks: pieces.length,
+          chunkId,
+        },
+      }),
+    );
   }
 
   return docs;

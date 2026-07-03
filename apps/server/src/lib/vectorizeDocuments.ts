@@ -14,6 +14,7 @@ export async function vectorizeDocuments(
     id: doc.metadata.chunkId.toString(),
     values: embeddings[index],
     metadata: {
+      userId: doc.metadata.userId,
       chunkId: doc.metadata.chunkId,
       source: doc.metadata.source,
       documentTitle: doc.metadata.documentTitle ?? 'unknown',

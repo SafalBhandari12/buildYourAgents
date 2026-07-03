@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import LlamaCloud from '@llamaindex/llama-cloud';
 import { Ai, VectorizeIndex, D1Database } from '@cloudflare/workers-types';
+import { User } from '../db/auth-schema';
 
 export type llamaParseEnv = {
   Bindings: {
@@ -59,6 +60,6 @@ export type BetterAuthEnv = DBEnv &
       BETTER_AUTH_URL: string;
     };
     Variables: {
-      userId: string;
+      user: Omit<User, 'tier'> & { tier: string };
     };
   };

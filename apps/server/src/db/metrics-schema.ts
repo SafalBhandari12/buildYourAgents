@@ -1,17 +1,26 @@
 import { relations } from "drizzle-orm";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { users } from "./auth-schema";
 
-export const metrics = sqliteTable("metrics", {
-  id: text("id").primaryKey(),
-  pagesParsed: integer("pages_parsed").notNull().default(0),
-  pagesRemaining: integer("pages_remaining").notNull().default(40),
-  chunksGenerated: integer("chunks_generated").notNull().default(0),
-  chunksRemaining: integer("chunks_remaining").notNull().default(40),
-  queriesExecuted: integer("queries_executed").notNull().default(0),
-  queriesRemaining: integer("queries_remaining").notNull().default(100),
-  tokensUsed: integer("tokens_used").notNull().default(0),
-  tokensRemaining: integer("tokens_remaining").notNull().default(100),
-});
+export const metrics = sqliteTable(
+  "metrics",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    pagesParsed: integer("pages_parsed").notNull().default(0),
+    pagesRemaining: integer("pages_remaining").notNull().default(40),
+    chunksGenerated: integer("chunks_generated").notNull().default(0),
+    chunksRemaining: integer("chunks_remaining").notNull().default(40),
+    queriesExecuted: integer("queries_executed").notNull().default(0),
+    queriesRemaining: integer("queries_remaining").notNull().default(100),
+    tokensUsed: integer("tokens_used").notNull().default(0),
+    tokensRemaining: integer("tokens_remaining").notNull().default(100),
+  },
+  (table) => [uniqueIndex("metrics_user_id_idx").on(table.userId)],
+);
 
 export const llmApiKeys = sqliteTable("llm_api_keys", {
   id: text("id").primaryKey(),
@@ -22,16 +31,19 @@ export const llmApiKeys = sqliteTable("llm_api_keys", {
   encryptedApiKey: text("encrypted_api_key").notNull(),
   expiryDate: integer("expiry_date", { mode: "timestamp_ms" }),
   rateLimitTimestamp: integer("rate_limit_timestamp", { mode: "timestamp_ms" }),
-  metricsId: text("metrics_id").references(() => metrics.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
 });
 
-export const metricsRelations = relations(metrics, ({ many }) => ({
-  llmApiKeys: many(llmApiKeys),
+export const metricsRelations = relations(metrics, ({ one }) => ({
+  user: one(users, {
+    fields: [metrics.userId],
+    references: [users.id],
+  }),
 }));
 
 export const llmApiKeysRelations = relations(llmApiKeys, ({ one }) => ({
-  metrics: one(metrics, {
-    fields: [llmApiKeys.metricsId],
-    references: [metrics.id],
+  user: one(users, {
+    fields: [llmApiKeys.userId],
+    references: [users.id],
   }),
 }));

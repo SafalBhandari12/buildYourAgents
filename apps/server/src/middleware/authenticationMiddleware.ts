@@ -11,8 +11,7 @@ export const authenticationMiddleware: MiddlewareHandler<BetterAuthEnv> = async 
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    c.set('userId', session.user.id);
-    console.log('Authenticated user ID:', session.user.id);
+    c.set('user', { ...session.user, image: session.user.image ?? null });
 
     await next();
   } catch (error) {
