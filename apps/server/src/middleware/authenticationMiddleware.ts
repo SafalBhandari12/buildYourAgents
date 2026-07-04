@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import { auth } from '../../auth';
 import { BetterAuthEnv } from '../lib/env';
+import { User } from '../db/auth-schema';
 
 export const authenticationMiddleware: MiddlewareHandler<BetterAuthEnv> = async (c, next) => {
   try {
@@ -11,7 +12,9 @@ export const authenticationMiddleware: MiddlewareHandler<BetterAuthEnv> = async 
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    c.set('user', { ...session.user, image: session.user.image ?? null });
+    c.set('user', {
+      ...session.user,
+    } as User);
 
     await next();
   } catch (error) {

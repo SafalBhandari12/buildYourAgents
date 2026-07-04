@@ -9,11 +9,10 @@ import { BetterAuthEnv, chatEnv, cloudflareAiEnv, DBEnv, llamaParseEnv } from '.
 import { splitMarkdownDocument } from './lib/splitter';
 import { vectorizeDocuments } from './lib/vectorizeDocuments';
 import { semanticSearch } from './lib/search';
-import { checkMetrics, deductMetrics, refundMetrics } from './lib/metrics';
+import { checkMetrics, checkQueryMetrics, deductMetrics, deductQueryMetrics, refundMetrics } from './lib/metrics';
 import { auth } from '../auth';
 import { authenticationMiddleware } from './middleware/authenticationMiddleware';
-
-import { readPdfPages } from 'pdf-text-reader';
+import { getDocumentProxy } from 'unpdf';
 
 const app = new Hono<Env>();
 
@@ -37,8 +36,8 @@ app.post(
     }
 
     const bytes = await file.arrayBuffer();
-    const pdfPages = await readPdfPages(bytes);
-    const pages = pdfPages.length;
+    const pdfPages = await getDocumentProxy(bytes);
+    const pages = pdfPages.numPages;
 
     const MAX_PAGES = 10;
     if (pages > MAX_PAGES) {
@@ -49,10 +48,12 @@ app.post(
     await checkMetrics(c.env.DB, user.id, pages, 0);
 
     const llamaParse = c.get('llamaParse');
+    let chunksCount = 0;
 
     try {
       const markdown = await parseFile(llamaParse, file);
       const chunks = await splitMarkdownDocument(markdown, file.name, user.id, user.tier);
+      chunksCount = chunks.length;
 
       // Check + deduct chunks (only known after split)
       await checkMetrics(c.env.DB, user.id, 0, chunks.length);
@@ -62,7 +63,7 @@ app.post(
 
       return c.json({ msg: 'Document ingested successfully', pages, chunks: chunks.length });
     } catch (err) {
-      await refundMetrics(c.env.DB, user.id, pages, 0);
+      await refundMetrics(c.env.DB, user.id, pages, chunksCount);
       throw err;
     }
   }),
@@ -70,12 +71,17 @@ app.post(
 
 app.post(
   '/chat',
+  authenticationMiddleware,
   openaiMiddleware,
   asyncHandler<chatEnv>(async (c) => {
     const body = await c.req.json();
     const { message } = await chatInputSchema.parseAsync(body);
+    const user = c.get('user');
 
-    const results = await semanticSearch(c.env.AI, c.env.VECTORIZE, message, undefined);
+    // Check query (1) and token (10) quota before any API calls
+    await checkQueryMetrics(c.env.DB, user.id, 10);
+
+    const results = await semanticSearch(c.env.AI, c.env.VECTORIZE, message, user.id);
 
     const context =
       results.length > 0
@@ -83,6 +89,9 @@ app.post(
         : 'No relevant context found.';
 
     const ai = c.get('openai');
+
+    // Deduct 1 query and 10 tokens
+    await deductQueryMetrics(c.env.DB, user.id, 10);
 
     return streamText(c, async (streamWriter) => {
       const llmResponse = await ai.responses.create({

@@ -30,8 +30,13 @@ export type cloudflareAiEnv = {
 };
 
 export type chatEnv = {
-  Bindings: openAiEnv['Bindings'] & cloudflareAiEnv['Bindings'] & huggingfaceEnv['Bindings'];
-  Variables: openAiEnv['Variables'];
+  Bindings: openAiEnv['Bindings'] &
+    cloudflareAiEnv['Bindings'] &
+    huggingfaceEnv['Bindings'] &
+    DBEnv['Bindings'];
+  Variables: openAiEnv['Variables'] & {
+    user: User;
+  };
 };
 
 export type huggingfaceEnv = {
@@ -60,6 +65,6 @@ export type BetterAuthEnv = DBEnv &
       BETTER_AUTH_URL: string;
     };
     Variables: {
-      user: Omit<User, 'tier'> & { tier: string };
+      user: User;
     };
   };

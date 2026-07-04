@@ -1,15 +1,10 @@
-import { drizzle } from 'drizzle-orm/d1';
-import { eq } from 'drizzle-orm';
-import * as schema from '../db/schema';
+import { eq, sql } from 'drizzle-orm';
 import type { D1Database } from '@cloudflare/workers-types';
 import { metrics } from '../db/metrics-schema';
-
-async function getDB(DB: D1Database) {
-  return drizzle(DB, { schema });
-}
+import { getDB } from './db';
 
 async function ensureMetrics(DB: D1Database, userId: string) {
-  const db = await getDB(DB);
+  const db = getDB(DB);
   let row = await db.select().from(metrics).where(eq(metrics.userId, userId)).get();
 
   if (!row) {
@@ -42,29 +37,48 @@ export async function checkMetrics(
   }
 }
 
+export async function checkQueryMetrics(
+  DB: D1Database,
+  userId: string,
+  requiredTokens: number,
+) {
+  const m = await ensureMetrics(DB, userId);
+
+  if (m.queriesRemaining < 1) {
+    throw new Error('Query quota exceeded: you have 0 queries remaining.');
+  }
+
+  if (m.tokensRemaining < requiredTokens) {
+    throw new Error(
+      `Token quota exceeded: you have ${m.tokensRemaining} tokens remaining but need ${requiredTokens}.`,
+    );
+  }
+}
+
 export async function deductMetrics(
   DB: D1Database,
   userId: string,
   pages: number,
   chunks: number,
 ) {
-  const db = await getDB(DB);
+  const db = getDB(DB);
 
-  await db.transaction(async (tx) => {
-    const m = await tx.select().from(metrics).where(eq(metrics.userId, userId)).get();
-    if (!m) return;
-
-    await tx
+  await db.batch([
+    db
       .update(metrics)
       .set({
-        pagesParsed: m.pagesParsed + pages,
-        pagesRemaining: m.pagesRemaining - pages,
-        chunksGenerated: m.chunksGenerated + chunks,
-        chunksRemaining: m.chunksRemaining - chunks,
+        pagesParsed: sql`pages_parsed + ${pages}`,
+        pagesRemaining: sql`pages_remaining - ${pages}`,
       })
-      .where(eq(metrics.userId, userId))
-      .run();
-  });
+      .where(eq(metrics.userId, userId)),
+    db
+      .update(metrics)
+      .set({
+        chunksGenerated: sql`chunks_generated + ${chunks}`,
+        chunksRemaining: sql`chunks_remaining - ${chunks}`,
+      })
+      .where(eq(metrics.userId, userId)),
+  ]);
 }
 
 export async function refundMetrics(
@@ -73,21 +87,47 @@ export async function refundMetrics(
   pages: number,
   chunks: number,
 ) {
-  const db = await getDB(DB);
+  const db = getDB(DB);
 
-  await db.transaction(async (tx) => {
-    const m = await tx.select().from(metrics).where(eq(metrics.userId, userId)).get();
-    if (!m) return;
-
-    await tx
+  await db.batch([
+    db
       .update(metrics)
       .set({
-        pagesParsed: Math.max(0, m.pagesParsed - pages),
-        pagesRemaining: m.pagesRemaining + pages,
-        chunksGenerated: Math.max(0, m.chunksGenerated - chunks),
-        chunksRemaining: m.chunksRemaining + chunks,
+        pagesParsed: sql`MAX(0, pages_parsed - ${pages})`,
+        pagesRemaining: sql`pages_remaining + ${pages}`,
       })
-      .where(eq(metrics.userId, userId))
-      .run();
-  });
+      .where(eq(metrics.userId, userId)),
+    db
+      .update(metrics)
+      .set({
+        chunksGenerated: sql`MAX(0, chunks_generated - ${chunks})`,
+        chunksRemaining: sql`chunks_remaining + ${chunks}`,
+      })
+      .where(eq(metrics.userId, userId)),
+  ]);
+}
+
+export async function deductQueryMetrics(
+  DB: D1Database,
+  userId: string,
+  amount: number,
+) {
+  const db = getDB(DB);
+
+  await db.batch([
+    db
+      .update(metrics)
+      .set({
+        queriesExecuted: sql`queries_executed + 1`,
+        queriesRemaining: sql`queries_remaining - 1`,
+      })
+      .where(eq(metrics.userId, userId)),
+    db
+      .update(metrics)
+      .set({
+        tokensUsed: sql`tokens_used + ${amount}`,
+        tokensRemaining: sql`tokens_remaining - ${amount}`,
+      })
+      .where(eq(metrics.userId, userId)),
+  ]);
 }
