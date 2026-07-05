@@ -45,7 +45,6 @@ export function auth(env: BetterAuthEnv['Bindings']) {
         sendOnSignIn: true,
         autoSignInAfterVerification: true,
         async sendVerificationEmail({ user, url }) {
-          console.log('Sending verification email to:', user.email, 'with URL:', url);
           await sendEmail({
             to: user.email,
             subject: 'Verify your email',

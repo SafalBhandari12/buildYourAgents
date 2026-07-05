@@ -58,7 +58,9 @@ app.post(
 
         const m = await ensureMetrics(c.env.DB, user.id);
         if (pages > m.pagesParsedRemaining) {
-          throw new BadRequestError(`File has too many pages. Maximum allowed is ${m.pagesParsedRemaining}`);
+          throw new BadRequestError(
+            `File has too many pages. Maximum allowed is ${m.pagesParsedRemaining}`,
+          );
         }
 
         await checkMetrics(c.env.DB, user.id, pages, 0);
@@ -96,8 +98,6 @@ app.post(
       await deductMetrics(c.env.DB, user.id, pages, chunks.length, deductedPagesCrawled);
       deductedParsedPages = pages;
       deductedChunks = chunks.length;
-      console.log('Chunks to be vectorized:', chunks.length, 'for user:', user.id);
-      console.log('First chunk metadata:', chunks[0]?.metadata);
 
       await vectorizeDocuments(c.env, chunks);
 
