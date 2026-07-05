@@ -16,7 +16,8 @@ export function auth(env: BetterAuthEnv['Bindings']) {
         usePlural: true,
       }),
       secret: env.BETTER_AUTH_SECRET,
-      baseURL: env.BETTER_AUTH_URL,
+      baseURL: new URL(env.BETTER_AUTH_URL).origin,
+      basePath: '/api/v1/auth',
       user: {
         additionalFields: {
           tier: {
