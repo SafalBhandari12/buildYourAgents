@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "24b38318-9dfb-4190-8d34-2f2764b72b02",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "c3160bed-d21b-4b7e-b6f0-64b6cf13dec8",
+  "prevId": "24b38318-9dfb-4190-8d34-2f2764b72b02",
   "tables": {
     "accounts": {
       "name": "accounts",
@@ -540,6 +540,22 @@
           "notNull": true,
           "autoincrement": false,
           "default": 100
+        },
+        "pages_crawled": {
+          "name": "pages_crawled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "pages_crawled_remaining": {
+          "name": "pages_crawled_remaining",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 40
         }
       },
       "indexes": {

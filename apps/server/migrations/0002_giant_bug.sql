@@ -1,0 +1,1 @@
+ALTER TABLE `metrics` RENAME COLUMN "pages_remaining" TO "pages_parsed_remaining";

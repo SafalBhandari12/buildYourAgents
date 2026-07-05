@@ -1,15 +1,24 @@
 import { Env, Hono } from 'hono';
 import { streamText } from 'hono/streaming';
 import { openaiMiddleware } from './lib/gpt';
-import { chatInputSchema } from './schema';
+import { chatInputSchema, ingestInputSchema } from './schema';
 import { llammaParseMiddleware, parseFile } from './lib/llamaParse';
 import { asyncHandler, globalErrorHandler } from './lib/errorHandler';
 import { BadRequestError } from './lib/errors';
-import { BetterAuthEnv, chatEnv, cloudflareAiEnv, DBEnv, llamaParseEnv } from './lib/env';
+import { BetterAuthEnv, chatEnv, cloudflareAiEnv, firecrawlEnv, llamaParseEnv } from './lib/env';
 import { splitMarkdownDocument } from './lib/splitter';
 import { vectorizeDocuments } from './lib/vectorizeDocuments';
 import { semanticSearch } from './lib/search';
-import { checkMetrics, checkQueryMetrics, deductMetrics, deductQueryMetrics, refundMetrics } from './lib/metrics';
+import { FirecrawlClient } from 'firecrawl';
+
+import {
+  checkMetrics,
+  checkQueryMetrics,
+  deductMetrics,
+  deductQueryMetrics,
+  ensureMetrics,
+  refundMetrics,
+} from './lib/metrics';
 import { auth } from '../auth';
 import { authenticationMiddleware } from './middleware/authenticationMiddleware';
 import { getDocumentProxy } from 'unpdf';
@@ -22,48 +31,85 @@ app.post(
   '/ingest',
   authenticationMiddleware,
   llammaParseMiddleware,
-  asyncHandler<llamaParseEnv & cloudflareAiEnv & BetterAuthEnv>(async (c) => {
+  asyncHandler<llamaParseEnv & cloudflareAiEnv & BetterAuthEnv & firecrawlEnv>(async (c) => {
     const form = await c.req.formData();
-    const file = form.get('file');
+    const { file, webUrl } = ingestInputSchema.parse({
+      file: form.get('file') ?? undefined,
+      webUrl: form.get('webUrl') ?? undefined,
+    });
     const user = c.get('user');
 
-    if (user.tier !== 'free') {
-      return c.json({ error: 'Only free tier users can ingest documents' }, 403);
-    }
-
-    if (!(file instanceof File)) {
-      throw new BadRequestError('Missing file: Please upload a valid file');
-    }
-
-    const bytes = await file.arrayBuffer();
-    const pdfPages = await getDocumentProxy(bytes);
-    const pages = pdfPages.numPages;
-
-    const MAX_PAGES = 10;
-    if (pages > MAX_PAGES) {
-      throw new BadRequestError(`File has too many pages. Maximum allowed is ${MAX_PAGES}`);
-    }
-
-    // Check page quota before any external API calls
-    await checkMetrics(c.env.DB, user.id, pages, 0);
-
     const llamaParse = c.get('llamaParse');
-    let chunksCount = 0;
+    let pages = 0;
+
+    let markdown: string;
+    let sourceName: string;
+
+    let deductedParsedPages = 0;
+    let deductedChunks = 0;
+    let deductedPagesCrawled = 0;
 
     try {
-      const markdown = await parseFile(llamaParse, file);
-      const chunks = await splitMarkdownDocument(markdown, file.name, user.id, user.tier);
-      chunksCount = chunks.length;
+      if (file) {
+        // PDF pipeline
+        const bytes = await file.arrayBuffer();
+        const pdfPages = await getDocumentProxy(bytes);
+        pages = pdfPages.numPages;
 
-      // Check + deduct chunks (only known after split)
-      await checkMetrics(c.env.DB, user.id, 0, chunks.length);
-      await deductMetrics(c.env.DB, user.id, pages, chunks.length);
+        const MAX_PAGES = 10;
+        if (pages > MAX_PAGES) {
+          throw new BadRequestError(`File has too many pages. Maximum allowed is ${MAX_PAGES}`);
+        }
+
+        await checkMetrics(c.env.DB, user.id, pages, 0);
+
+        markdown = await parseFile(llamaParse, file);
+        sourceName = file.name;
+      } else {
+        // Web URL pipeline using Firecrawl
+        const m = await ensureMetrics(c.env.DB, user.id);
+        const pagesCrawledRemaining = m.pagesCrawledRemaining;
+        const app = new FirecrawlClient({ apiKey: c.env.FIRECRAWL_API_KEY });
+
+        const crawl = await app.crawl(webUrl!, {
+          limit: pagesCrawledRemaining,
+          maxDiscoveryDepth: 3,
+          ignoreQueryParameters: true,
+          scrapeOptions: {
+            formats: ['markdown'],
+          },
+        });
+
+        const successfulPages = crawl.data.filter((d) => d.metadata?.statusCode === 200);
+        deductedPagesCrawled = successfulPages.length;
+
+        markdown = successfulPages
+          .map((d) => d.markdown)
+          .filter(Boolean)
+          .join('\n\n---\n\n');
+        sourceName = webUrl!;
+      }
+
+      const chunks = await splitMarkdownDocument(markdown, sourceName, user.id, user.tier);
+
+      await checkMetrics(c.env.DB, user.id, pages, chunks.length, deductedPagesCrawled);
+      await deductMetrics(c.env.DB, user.id, pages, chunks.length, deductedPagesCrawled);
+      deductedParsedPages = pages;
+      deductedChunks = chunks.length;
+      console.log('Chunks to be vectorized:', chunks.length, 'for user:', user.id);
+      console.log('First chunk metadata:', chunks[0]?.metadata);
 
       await vectorizeDocuments(c.env, chunks);
 
       return c.json({ msg: 'Document ingested successfully', pages, chunks: chunks.length });
     } catch (err) {
-      await refundMetrics(c.env.DB, user.id, pages, chunksCount);
+      await refundMetrics(
+        c.env.DB,
+        user.id,
+        deductedParsedPages,
+        deductedChunks,
+        deductedPagesCrawled,
+      );
       throw err;
     }
   }),

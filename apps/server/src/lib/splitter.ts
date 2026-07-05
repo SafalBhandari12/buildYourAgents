@@ -124,7 +124,6 @@ export async function splitMarkdownDocument(
         })()
       : null;
 
-
   const docs: Document<ChunkMetadata>[] = [];
 
   for (const section of sections) {
@@ -218,7 +217,12 @@ async function splitSimpleText(
           source,
           userId,
           documentTitle: null,
-          h1: null, h2: null, h3: null, h4: null, h5: null, h6: null,
+          h1: null,
+          h2: null,
+          h3: null,
+          h4: null,
+          h5: null,
+          h6: null,
           title: null,
           headerPath: 'Direct',
           chunkIndex: i,

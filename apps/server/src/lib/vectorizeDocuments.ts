@@ -22,5 +22,6 @@ export async function vectorizeDocuments(
     },
   }));
 
+
   await env.VECTORIZE.upsert(vectors);
 }

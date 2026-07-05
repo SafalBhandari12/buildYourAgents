@@ -7,7 +7,9 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   emailVerified: integer('email_verified', { mode: 'boolean' }).default(false).notNull(),
   image: text('image'),
-  tier: text('tier', { enum: ['free', 'basics', 'premium'] }).notNull().default('free'),
+  tier: text('tier', { enum: ['free', 'basics', 'premium'] })
+    .notNull()
+    .default('free'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
@@ -17,7 +19,7 @@ export const users = sqliteTable('users', {
     .notNull(),
 });
 
-export type User = typeof users.$inferSelect; 
+export type User = typeof users.$inferSelect;
 
 export const sessions = sqliteTable(
   'sessions',

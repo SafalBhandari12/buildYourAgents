@@ -58,6 +58,12 @@ export type maileriooEnv = {
   };
 };
 
+export type firecrawlEnv = {
+  Bindings: {
+    FIRECRAWL_API_KEY: string;
+  };
+};
+
 export type BetterAuthEnv = DBEnv &
   maileriooEnv & {
     Bindings: {

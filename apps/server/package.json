@@ -6,7 +6,10 @@
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:prod": "wrangler d1 migrations apply DB --remote"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.23",
@@ -16,6 +19,7 @@
     "@llamaindex/llama-cloud": "^2.9.1",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
+    "firecrawl": "^4.29.2",
     "hono": "^4.12.27",
     "openai": "^6.45.0",
     "unpdf": "^1.6.2",
