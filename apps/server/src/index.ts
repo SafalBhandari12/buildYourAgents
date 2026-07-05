@@ -56,9 +56,9 @@ app.post(
         const pdfPages = await getDocumentProxy(bytes);
         pages = pdfPages.numPages;
 
-        const MAX_PAGES = 10;
-        if (pages > MAX_PAGES) {
-          throw new BadRequestError(`File has too many pages. Maximum allowed is ${MAX_PAGES}`);
+        const m = await ensureMetrics(c.env.DB, user.id);
+        if (pages > m.pagesParsedRemaining) {
+          throw new BadRequestError(`File has too many pages. Maximum allowed is ${m.pagesParsedRemaining}`);
         }
 
         await checkMetrics(c.env.DB, user.id, pages, 0);
