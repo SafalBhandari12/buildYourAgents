@@ -20,6 +20,7 @@ import {
   refundMetrics,
 } from '../lib/metrics';
 import { authenticationMiddleware } from '../middleware/authenticationMiddleware';
+import { rateLimiterMiddleware } from '../middleware/rateLimiter';
 import { getDocumentProxy } from 'unpdf';
 
 const ai = new Hono<Env>();
@@ -27,6 +28,7 @@ const ai = new Hono<Env>();
 ai.post(
   '/ingest',
   authenticationMiddleware,
+  rateLimiterMiddleware,
   llammaParseMiddleware,
   asyncHandler<llamaParseEnv & cloudflareAiEnv & BetterAuthEnv & firecrawlEnv>(async (c) => {
     const form = await c.req.formData();
@@ -115,6 +117,7 @@ ai.post(
 ai.post(
   '/chat',
   authenticationMiddleware,
+  rateLimiterMiddleware,
   openaiMiddleware,
   asyncHandler<chatEnv>(async (c) => {
     const body = await c.req.json();

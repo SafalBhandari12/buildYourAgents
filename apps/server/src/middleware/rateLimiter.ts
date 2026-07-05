@@ -1,4 +1,4 @@
-import { Context, MiddlewareHandler, Next } from 'hono';
+import { MiddlewareHandler } from 'hono';
 import { BetterAuthEnv, RateLimitEnv } from '../lib/env';
 
 export const rateLimiterMiddleware: MiddlewareHandler<RateLimitEnv & BetterAuthEnv> = async (
@@ -6,16 +6,13 @@ export const rateLimiterMiddleware: MiddlewareHandler<RateLimitEnv & BetterAuthE
   next,
 ) => {
   const url = new URL(c.req.url);
-
   const limiter = c.env.GENERAL_RATE_LIMIT;
 
-  let key;
-
-  if (c.get('user') === undefined) {
-    key = `${c.req.method}:${url.pathname}:${c.header('cf-connecting-ip')}`;
-  } else {
-    key = `${c.req.method}:${url.pathname}:${c.get('user')!.id}`;
-  }
+  const user = c.get('user');
+  const ip = c.req.header('cf-connecting-ip') ?? 'unknown';
+  const key = user
+    ? `${c.req.method}:${url.pathname}:${user.id}`
+    : `${c.req.method}:${url.pathname}:${ip}`;
 
   const { success } = await limiter.limit({ key });
   if (!success) {
