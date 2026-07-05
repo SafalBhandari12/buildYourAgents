@@ -25,10 +25,11 @@ import { getDocumentProxy } from 'unpdf';
 
 const ai = new Hono<Env>();
 
+ai.use(authenticationMiddleware);
+ai.use(rateLimiterMiddleware);
+
 ai.post(
   '/ingest',
-  authenticationMiddleware,
-  rateLimiterMiddleware,
   llammaParseMiddleware,
   asyncHandler<llamaParseEnv & cloudflareAiEnv & BetterAuthEnv & firecrawlEnv>(async (c) => {
     const form = await c.req.formData();
@@ -116,8 +117,6 @@ ai.post(
 
 ai.post(
   '/chat',
-  authenticationMiddleware,
-  rateLimiterMiddleware,
   openaiMiddleware,
   asyncHandler<chatEnv>(async (c) => {
     const body = await c.req.json();

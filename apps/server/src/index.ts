@@ -6,6 +6,7 @@ const app = new Hono<Env>();
 
 app.onError(globalErrorHandler);
 
+
 app.route('/api/v1', v1);
 
 export default app;
