@@ -135,32 +135,37 @@ ai.post(
 
     const ai = c.get('openai');
 
-    // Deduct 1 query and 10 tokens
-    await deductQueryMetrics(c.env.DB, user.id, 10);
-
     return streamText(c, async (streamWriter) => {
-      const llmResponse = await ai.responses.create({
-        model: 'gpt-5.4-mini',
-        input: [
-          {
-            role: 'system',
-            content: `You are a helpful assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, just answer based on your own knowledge.
+      try {
+        const llmResponse = await ai.responses.create({
+          model: 'gpt-5.4-mini',
+          input: [
+            {
+              role: 'system',
+              content: `You are a helpful assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, just answer based on your own knowledge.
 
 Context:
 ${context}`,
-          },
-          {
-            role: 'user',
-            content: message,
-          },
-        ],
-        stream: true,
-      });
+            },
+            {
+              role: 'user',
+              content: message,
+            },
+          ],
+          stream: true,
+        });
 
-      for await (const event of llmResponse) {
-        if (event.type === 'response.output_text.delta') {
-          await streamWriter.write(event.delta);
+        for await (const event of llmResponse) {
+          if (event.type === 'response.output_text.delta') {
+            await streamWriter.write(event.delta);
+          }
         }
+
+        // Deduct only after a successful stream
+        await deductQueryMetrics(c.env.DB, user.id, 10);
+      } catch (err) {
+        console.error('Chat stream failed:', err);
+        throw err;
       }
     });
   }),
