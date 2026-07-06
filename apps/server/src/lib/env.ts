@@ -1,16 +1,6 @@
 import OpenAI from 'openai';
-import LlamaCloud from '@llamaindex/llama-cloud';
 import { Ai, VectorizeIndex, D1Database, RateLimit } from '@cloudflare/workers-types';
 import { User } from '../db/auth-schema';
-
-export type llamaParseEnv = {
-  Bindings: {
-    LLAMAPARSE_API_KEY: string;
-  };
-  Variables: {
-    llamaParse: LlamaCloud;
-  };
-};
 
 export type openAiEnv = {
   Bindings: {

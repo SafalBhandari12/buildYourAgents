@@ -1,30 +1,22 @@
-import LlamaCloud from '@llamaindex/llama-cloud';
-import { createMiddleware } from 'hono/factory';
-import { BetterAuthEnv, llamaParseEnv } from './env';
+import { initSync, LiteParse } from '@llamaindex/liteparse-wasm';
+import wasmModule from '@llamaindex/liteparse-wasm/liteparse_wasm_bg.wasm';
 
-export const llammaParseMiddleware = createMiddleware<llamaParseEnv & BetterAuthEnv>(
-  async (c, next) => {
-    c.set('llamaParse', new LlamaCloud({ apiKey: c.env.LLAMAPARSE_API_KEY }));
-    await next();
-  },
-);
+let initialized = false;
 
-export async function parseFile(llamaParse: LlamaCloud, file: File): Promise<string> {
-  const fileObj = await llamaParse.files.create({
-    file,
-    purpose: 'parse',
-  });
-
-  const result = await llamaParse.parsing.parse({
-    file_id: fileObj.id,
-    tier: 'cost_effective',
-    expand: ['markdown_full'],
-    version: '2026-06-26',
-  });
-
-  if (result.markdown_full === undefined || result.markdown_full === null) {
-    throw new Error('Parsing failed: No markdown content returned');
+export async function parseFile(file: File): Promise<string> {
+  if (!initialized) {
+    initSync({ module: wasmModule });
+    initialized = true;
   }
 
-  return result.markdown_full;
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+
+  const parser = new LiteParse({
+    ocrEnabled: false,
+    outputFormat: 'markdown',
+  });
+
+  const result = await parser.parse(bytes);
+  return result.text;
 }

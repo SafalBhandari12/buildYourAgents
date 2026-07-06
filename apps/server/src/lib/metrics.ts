@@ -19,17 +19,10 @@ export async function ensureMetrics(DB: D1Database, userId: string) {
 export async function checkMetrics(
   DB: D1Database,
   userId: string,
-  pages: number,
   chunks: number,
   pagesCrawled: number = 0,
 ) {
   const m = await ensureMetrics(DB, userId);
-
-  if (m.pagesParsedRemaining < pages) {
-    throw new Error(
-      `Page quota exceeded: you have ${m.pagesParsedRemaining} pages remaining but need ${pages}.`,
-    );
-  }
 
   if (m.pagesCrawledRemaining < pagesCrawled) {
     throw new Error(
@@ -61,7 +54,6 @@ export async function checkQueryMetrics(DB: D1Database, userId: string, required
 export async function deductMetrics(
   DB: D1Database,
   userId: string,
-  pages: number,
   chunks: number,
   pagesCrawled: number = 0,
 ) {
@@ -78,13 +70,6 @@ export async function deductMetrics(
     db
       .update(metrics)
       .set({
-        pagesParsed: sql`pages_parsed + ${pages}`,
-        pagesParsedRemaining: sql`pages_parsed_remaining - ${pages}`,
-      })
-      .where(eq(metrics.userId, userId)),
-    db
-      .update(metrics)
-      .set({
         chunksGenerated: sql`chunks_generated + ${chunks}`,
         chunksRemaining: sql`chunks_remaining - ${chunks}`,
       })
@@ -95,7 +80,6 @@ export async function deductMetrics(
 export async function refundMetrics(
   DB: D1Database,
   userId: string,
-  pages: number,
   chunks: number,
   pagesCrawled: number = 0,
 ) {
@@ -107,13 +91,6 @@ export async function refundMetrics(
       .set({
         pagesCrawled: sql`MAX(0, pages_crawled - ${pagesCrawled})`,
         pagesCrawledRemaining: sql`pages_crawled_remaining + ${pagesCrawled}`,
-      })
-      .where(eq(metrics.userId, userId)),
-    db
-      .update(metrics)
-      .set({
-        pagesParsed: sql`MAX(0, pages_parsed - ${pages})`,
-        pagesParsedRemaining: sql`pages_parsed_remaining + ${pages}`,
       })
       .where(eq(metrics.userId, userId)),
     db

@@ -2,10 +2,10 @@ import { Hono, Env } from 'hono';
 import { streamText } from 'hono/streaming';
 import { openaiMiddleware } from '../lib/gpt';
 import { chatInputSchema, ingestInputSchema } from '../schema';
-import { llammaParseMiddleware, parseFile } from '../lib/llamaParse';
+import { parseFile } from '../lib/llamaParse';
 import { asyncHandler } from '../lib/errorHandler';
 import { BadRequestError } from '../lib/errors';
-import { BetterAuthEnv, chatEnv, cloudflareAiEnv, firecrawlEnv, llamaParseEnv } from '../lib/env';
+import { BetterAuthEnv, chatEnv, cloudflareAiEnv, firecrawlEnv } from '../lib/env';
 import { splitMarkdownDocument } from '../lib/splitter';
 import { vectorizeDocuments } from '../lib/vectorizeDocuments';
 import { semanticSearch } from '../lib/search';
@@ -21,7 +21,6 @@ import {
 } from '../lib/metrics';
 import { authenticationMiddleware } from '../middleware/authenticationMiddleware';
 import { rateLimiterMiddleware } from '../middleware/rateLimiter';
-import { getDocumentProxy } from 'unpdf';
 
 const ai = new Hono<Env>();
 
@@ -30,8 +29,7 @@ ai.use(rateLimiterMiddleware);
 
 ai.post(
   '/ingest',
-  llammaParseMiddleware,
-  asyncHandler<llamaParseEnv & cloudflareAiEnv & BetterAuthEnv & firecrawlEnv>(async (c) => {
+  asyncHandler<cloudflareAiEnv & BetterAuthEnv & firecrawlEnv>(async (c) => {
     const form = await c.req.formData();
     const { file, webUrl } = ingestInputSchema.parse({
       file: form.get('file') ?? undefined,
@@ -39,33 +37,16 @@ ai.post(
     });
     const user = c.get('user');
 
-    const llamaParse = c.get('llamaParse');
-    let pages = 0;
-
     let markdown: string;
     let sourceName: string;
 
-    let deductedParsedPages = 0;
     let deductedChunks = 0;
     let deductedPagesCrawled = 0;
 
     try {
       if (file) {
-        // PDF pipeline
-        const bytes = await file.arrayBuffer();
-        const pdfPages = await getDocumentProxy(bytes);
-        pages = pdfPages.numPages;
-
-        const m = await ensureMetrics(c.env.DB, user.id);
-        if (pages > m.pagesParsedRemaining) {
-          throw new BadRequestError(
-            `File has too many pages. Maximum allowed is ${m.pagesParsedRemaining}`,
-          );
-        }
-
-        await checkMetrics(c.env.DB, user.id, pages, 0);
-
-        markdown = await parseFile(llamaParse, file);
+        // PDF pipeline — local LiteParse
+        markdown = await parseFile(file);
         sourceName = file.name;
       } else {
         // Web URL pipeline using Firecrawl
@@ -94,19 +75,17 @@ ai.post(
 
       const chunks = await splitMarkdownDocument(markdown, sourceName, user.id, user.tier);
 
-      await checkMetrics(c.env.DB, user.id, pages, chunks.length, deductedPagesCrawled);
-      await deductMetrics(c.env.DB, user.id, pages, chunks.length, deductedPagesCrawled);
-      deductedParsedPages = pages;
+      await checkMetrics(c.env.DB, user.id, chunks.length, deductedPagesCrawled);
+      await deductMetrics(c.env.DB, user.id, chunks.length, deductedPagesCrawled);
       deductedChunks = chunks.length;
 
       await vectorizeDocuments(c.env, chunks);
 
-      return c.json({ msg: 'Document ingested successfully', pages, chunks: chunks.length });
+      return c.json({ msg: 'Document ingested successfully', chunks: chunks.length });
     } catch (err) {
       await refundMetrics(
         c.env.DB,
         user.id,
-        deductedParsedPages,
         deductedChunks,
         deductedPagesCrawled,
       );

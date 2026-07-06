@@ -10,8 +10,6 @@ export const metrics = sqliteTable(
       .notNull()
       .unique()
       .references(() => users.id, { onDelete: 'cascade' }),
-    pagesParsed: integer('pages_parsed').notNull().default(0),
-    pagesParsedRemaining: integer('pages_parsed_remaining').notNull().default(40),
     chunksGenerated: integer('chunks_generated').notNull().default(0),
     chunksRemaining: integer('chunks_remaining').notNull().default(40),
     queriesExecuted: integer('queries_executed').notNull().default(0),

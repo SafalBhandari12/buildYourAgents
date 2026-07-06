@@ -69,6 +69,9 @@ importers:
       '@langchain/textsplitters':
         specifier: ^1.0.1
         version: 1.0.1(@langchain/core@1.2.1(openai@6.45.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))
+      '@llamaindex/liteparse-wasm':
+        specifier: ^2.4.1
+        version: 2.4.1
       '@llamaindex/llama-cloud':
         specifier: ^2.9.1
         version: 2.10.0
@@ -1029,6 +1032,10 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       '@langchain/core': ^1.0.0
+
+  '@llamaindex/liteparse-wasm@2.4.1':
+    resolution: {integrity: sha512-MU8eG3vtI9s4kcmYTiVvjxcY4FAbvxp/AKsdvh4YpcbD3A2+1DSOnlIu77rWfdhyqOSwH4Z/J+DGDoZlFA+jAw==}
+    engines: {node: '>=18.0.0'}
 
   '@llamaindex/llama-cloud@2.10.0':
     resolution: {integrity: sha512-xnlRA58dkGgtk8OuTrx3XqAx90+FuqwKAMy+F4MKEZNcFcK+2naRY57mpeM2V+ZmMgu2d/NXB2Tvqk20dSx7QA==}
@@ -3141,6 +3148,8 @@ snapshots:
     dependencies:
       '@langchain/core': 1.2.1(openai@6.45.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
       js-tiktoken: 1.0.21
+
+  '@llamaindex/liteparse-wasm@2.4.1': {}
 
   '@llamaindex/llama-cloud@2.10.0': {}
 
