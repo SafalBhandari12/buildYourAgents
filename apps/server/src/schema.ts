@@ -13,5 +13,10 @@ export const ingestInputSchema = z
     message: 'Either file or webUrl must be provided',
   });
 
+export const createApiKeySchema = z.object({
+  name: z.string().min(1).max(64),
+});
+
 export type chatInputType = z.infer<typeof chatInputSchema>;
 export type ingestInputType = z.infer<typeof ingestInputSchema>;
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
