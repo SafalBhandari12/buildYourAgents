@@ -1,159 +1,164 @@
-# Turborepo starter
+# Sabai — Build Your Agents
 
-This Turborepo starter is maintained by the Turborepo core team.
+Sabai (working name **BuildYourAgents**) is a platform for building a personal
+RAG-powered AI agent: upload documents or crawl URLs into a knowledge base,
+chat against that context using your own LLM provider keys (or the platform's
+shared key), and configure the whole pipeline — chunking, retrieval, model
+chain order, system prompt — from a visual, node-based canvas.
 
-## Using this example
+## Monorepo layout
 
-Run the following command:
+This is a [Turborepo](https://turborepo.dev) managed with `pnpm` workspaces.
 
-```sh
-npx create-turbo@latest
+```
+apps/
+  web/       Next.js 16 app — dashboard, workflow canvas, chat playground
+  server/    Hono API running on Cloudflare Workers, backed by D1 (SQLite)
+  docs/      Next.js docs site
+packages/
+  ui/                  Shared React component library
+  eslint-config/       Shared ESLint config
+  typescript-config/   Shared tsconfig presets
 ```
 
-## What's inside?
+### `apps/server` — the API
 
-This Turborepo includes the following packages/apps:
+A [Hono](https://hono.dev) app deployed as a Cloudflare Worker (see
+`wrangler.jsonc`), using D1 for storage and Drizzle ORM for schema/migrations.
 
-### Apps and Packages
+Routes (mounted under `/api/v1`, see `src/routes/index.ts`):
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+| Route                 | Purpose                                                            |
+| --------------------- | ------------------------------------------------------------------- |
+| `/auth`                | Session auth via [better-auth](https://better-auth.com)            |
+| `/ingest` (root)       | Upload a file or crawl a URL into the knowledge base                |
+| `/chat` (root)         | Streaming RAG chat completion                                       |
+| `/documents`           | List/delete ingested documents                                      |
+| `/knowledge-settings`  | Chunk size/overlap configuration                                    |
+| `/agent-settings`      | System prompt, temperature, token limits                            |
+| `/llm-keys`            | Bring-your-own LLM provider keys (OpenAI, Claude, Gemini, Groq...)   |
+| `/api-keys`            | Programmatic API key management                                     |
+| `/chat-history`        | Past conversation log                                                |
+| `/metrics`             | Per-user usage/quota tracking                                        |
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+**Ingestion pipeline** (`/ingest`):
 
-### Utilities
+1. PDFs are parsed to markdown via [LlamaCloud](https://cloud.llamaindex.ai)
+   (`src/lib/llamaParse.ts`); web URLs are crawled with
+   [Firecrawl](https://firecrawl.dev).
+2. The markdown is split into header-aware, overlapping chunks
+   (`src/lib/splitter.ts`) using `@langchain/textsplitters`, preserving each
+   chunk's section breadcrumb (`Document > Section > Subsection`) as metadata.
+3. Chunks are embedded and stored in Cloudflare Vectorize
+   (`src/lib/vectorizeDocuments.ts`).
 
-This Turborepo has some additional tools already setup for you:
+**Chat pipeline** (`/chat`):
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+1. The user's message is embedded and matched against Vectorize
+   (`src/lib/search.ts`) to build retrieval context.
+2. Requests are routed through a configurable chain of LLM providers
+   (`src/lib/llmChain.ts`) — the platform's own key first (with a fixed quota
+   and token cap), then the user's own saved keys in their configured order,
+   with automatic cooldown on rate limits and fallback to the next provider.
+3. Responses are streamed back to the client and logged to chat history.
 
-### Build
+### `apps/web` — the dashboard
 
-To build all apps and packages, run the following command:
+Next.js 16 (App Router, Turbopack) app with:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+- A drag-and-drop **workflow canvas** (`@xyflow/react`) for wiring together
+  Knowledge Base, Agent Settings, and Model Key nodes.
+- A **chat playground** for testing the configured agent live.
+- Panels for managing documents, LLM provider keys, API keys, and chat
+  history.
+- Auth via `better-auth/react`, talking to the server's `/api/v1/auth`
+  endpoints.
 
-```sh
-cd my-turborepo
-turbo build
-```
+## Prerequisites
 
-Without global `turbo`, use your package manager:
+- Node.js >= 18
+- [pnpm](https://pnpm.io) 9
+- A Cloudflare account (Workers + D1 + Vectorize) for the server
+- API keys for the services you want to use: LlamaCloud, Firecrawl, OpenAI
+  (or another LLM provider), Cloudflare AI
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
-```
+## Getting started
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
+Install dependencies from the repo root:
 
 ```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
+pnpm install
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Configure environment variables
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+**Server** (`apps/server/.dev.vars` for local dev, Wrangler secrets for
+deployed environments):
+
+```
+LLAMAPARSE_API_KEY=...
+FIRECRAWL_API_KEY=...
+OPENAI_API_KEY=...
+AZURE_BASE_URl=...
+LLM_KEY_ENCRYPTION_SECRET=...
+BETTER_AUTH_SECRET=...
+BETTER_AUTH_URL=...
+FRONTEND_URL=...
+MAILEROO_API_KEY=...
+MAIL_FROM_EMAIL=...
+```
+
+Also configure D1 and Vectorize bindings in `apps/server/wrangler.jsonc`.
+
+**Web** (`apps/web/.env.local`):
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8787
+```
+
+> In CI/CD, `NEXT_PUBLIC_API_URL` must be set as a GitHub Actions **repository
+> variable** (Settings → Secrets and variables → Actions → Variables) pointing
+> at the deployed server URL — the Next.js build statically prerenders pages
+> that construct auth URLs from it, and an empty value will fail the build.
+
+### Run everything in dev mode
 
 ```sh
-turbo dev --filter=web
+pnpm dev
 ```
 
-Without global `turbo`:
+This runs `apps/server` (`wrangler dev`) and `apps/web`/`apps/docs`
+(`next dev`) in parallel via Turborepo.
+
+### Database migrations
+
+From `apps/server`:
 
 ```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+pnpm db:generate           # generate a new migration from schema changes
+pnpm db:migrate:local      # apply migrations to the local D1 database
+pnpm db:migrate:prod       # apply migrations to the remote/production D1 database
 ```
 
-### Remote Caching
+## Other useful commands
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Run from the repo root (applies to all apps via Turborepo):
 
 ```sh
-cd my-turborepo
-turbo login
+pnpm build          # build all apps
+pnpm lint           # lint all apps
+pnpm check-types    # typecheck all apps
+pnpm format         # format the codebase with Prettier
+pnpm format:check   # check formatting without writing
 ```
 
-Without global `turbo`, use your package manager:
+## Tech stack
 
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- **Frontend**: Next.js 16, React 19, Tailwind CSS 4, TanStack Query, XYFlow
+- **Backend**: Hono, Cloudflare Workers, Cloudflare D1, Cloudflare Vectorize,
+  Drizzle ORM
+- **Auth**: better-auth
+- **AI/RAG**: LlamaCloud (PDF parsing), Firecrawl (web crawling),
+  `@langchain/textsplitters` (chunking), OpenAI-compatible chat completions
+  (multi-provider: OpenAI, Claude, Gemini, DeepSeek, Groq)
+- **Tooling**: Turborepo, pnpm workspaces, TypeScript, ESLint, Prettier
