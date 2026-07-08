@@ -160,7 +160,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
 
   return (
     <div className="px-4 py-4 flex-grow overflow-y-auto flex flex-col gap-4">
-      <p className="text-copy-13 text-gray-600 leading-relaxed">
+      <p className="text-copy-13 text-gray-1000 leading-relaxed">
         Requests try each provider below in order. If one fails or is rate-limited, the next one is
         used automatically. Your own keys are never billed against your platform quota.
       </p>
@@ -170,17 +170,17 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
       )}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-label-12 uppercase tracking-wider text-gray-600">Execution Order</h3>
+        <h3 className="text-label-12 uppercase tracking-wider text-gray-1000">Execution Order</h3>
         <button onClick={handleOpenAdd} className="btn-primary px-3 py-1.5 flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">add</span>
           Add Provider Key
         </button>
       </div>
 
-      {isLoading && <p className="text-copy-13 text-gray-600 py-2">Loading…</p>}
+      {isLoading && <p className="text-copy-13 text-gray-1000 py-2">Loading…</p>}
 
       {!isLoading && !isAuthenticated && (
-        <p className="text-copy-13 text-gray-600 py-2">Sign in to configure your model providers.</p>
+        <p className="text-copy-13 text-gray-1000 py-2">Sign in to configure your model providers.</p>
       )}
 
       <div className="flex flex-col divide-y divide-gray-alpha-200">
@@ -191,13 +191,13 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
           return (
             <div key={id} className="flex items-center justify-between py-2.5 gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-label-12 text-gray-600 w-4 flex-shrink-0">{index + 1}</span>
+                <span className="text-label-12 text-gray-1000 w-4 flex-shrink-0">{index + 1}</span>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-label-14 text-gray-1000 truncate">
                       {key ? key.name : 'Platform Default'}
                     </span>
-                    <span className="text-label-12 text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-sm">
+                    <span className="text-label-12 text-gray-1000 bg-gray-200 px-1.5 py-0.5 rounded-sm">
                       {key ? PROVIDER_LABELS[key.provider] : 'Platform'}
                     </span>
                     {isCoolingDown && (
@@ -206,7 +206,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
                       </span>
                     )}
                   </div>
-                  <span className="text-copy-13 text-gray-600">
+                  <span className="text-copy-13 text-gray-1000">
                     {key ? `${key.model} • Added ${formatDate(key.createdAt)}` : 'Included in the platform plan'}
                   </span>
                 </div>
@@ -216,28 +216,28 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
                 <button
                   onClick={() => handleMove(index, -1)}
                   disabled={index === 0}
-                  className="material-symbols-outlined text-gray-600 hover:text-gray-1000 text-lg disabled:opacity-30"
+                  className="material-symbols-outlined text-gray-1000 hover:text-gray-1000 text-lg disabled:opacity-30"
                 >
                   arrow_upward
                 </button>
                 <button
                   onClick={() => handleMove(index, 1)}
                   disabled={index === order.length - 1}
-                  className="material-symbols-outlined text-gray-600 hover:text-gray-1000 text-lg disabled:opacity-30"
+                  className="material-symbols-outlined text-gray-1000 hover:text-gray-1000 text-lg disabled:opacity-30"
                 >
                   arrow_downward
                 </button>
                 {key ? (
                   <button
                     onClick={() => handleDelete(key.id)}
-                    className="material-symbols-outlined text-gray-600 hover:text-red-700 text-lg"
+                    className="material-symbols-outlined text-gray-1000 hover:text-red-700 text-lg"
                   >
                     delete
                   </button>
                 ) : (
                   <button
                     onClick={() => handleTogglePlatform(false)}
-                    className="material-symbols-outlined text-gray-600 hover:text-red-700 text-lg"
+                    className="material-symbols-outlined text-gray-1000 hover:text-red-700 text-lg"
                     title="Disable platform default"
                   >
                     toggle_on
@@ -253,15 +253,15 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-label-14 text-gray-1000">Platform Default</span>
-                <span className="text-label-12 text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-sm">
+                <span className="text-label-12 text-gray-1000 bg-gray-200 px-1.5 py-0.5 rounded-sm">
                   Platform
                 </span>
               </div>
-              <span className="text-copy-13 text-gray-600">Currently disabled</span>
+              <span className="text-copy-13 text-gray-1000">Currently disabled</span>
             </div>
             <button
               onClick={() => handleTogglePlatform(true)}
-              className="material-symbols-outlined text-gray-600 hover:text-gray-1000 text-lg"
+              className="material-symbols-outlined text-gray-1000 hover:text-gray-1000 text-lg"
               title="Enable platform default"
             >
               toggle_off
@@ -276,7 +276,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             <h3 className="text-heading-16 text-gray-1000">Add Provider Key</h3>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">Provider</span>
+              <span className="text-label-14 text-gray-1000">Provider</span>
               <select
                 className="input-field"
                 value={provider}
@@ -295,7 +295,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">Name</span>
+              <span className="text-label-14 text-gray-1000">Name</span>
               <input
                 className="input-field"
                 placeholder="Personal Groq Key"
@@ -305,7 +305,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">Model</span>
+              <span className="text-label-14 text-gray-1000">Model</span>
               <input
                 className="input-field"
                 placeholder={MODEL_PLACEHOLDERS[provider]}
@@ -315,7 +315,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">API Key</span>
+              <span className="text-label-14 text-gray-1000">API Key</span>
               <input
                 className="input-field"
                 type="password"
@@ -327,7 +327,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
 
             {PROVIDERS_REQUIRING_BASE_URL.has(provider) && (
               <label className="flex flex-col gap-1">
-                <span className="text-label-14 text-gray-900">Base URL</span>
+                <span className="text-label-14 text-gray-1000">Base URL</span>
                 <input
                   className="input-field"
                   placeholder="https://your-endpoint.example.com/v1"

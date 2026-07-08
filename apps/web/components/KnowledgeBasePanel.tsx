@@ -146,14 +146,14 @@ export function KnowledgeBasePanel({
               e.target.value = '';
             }}
           />
-          <span className="material-symbols-outlined text-gray-600 group-hover:text-gray-1000 text-xl">
+          <span className="material-symbols-outlined text-gray-1000 group-hover:text-gray-1000 text-xl">
             {isIngesting ? 'hourglass_top' : 'upload_file'}
           </span>
           <div>
             <p className="text-label-14 text-gray-1000">
               {isIngesting ? 'Indexing…' : 'Drag & drop, or click to browse'}
             </p>
-            <p className="text-copy-13 text-gray-600">PDF, TXT, DOCX up to 50MB</p>
+            <p className="text-copy-13 text-gray-1000">PDF, TXT, DOCX up to 50MB</p>
           </div>
         </div>
 
@@ -177,14 +177,14 @@ export function KnowledgeBasePanel({
         </div>
 
         <div className="flex flex-col mt-1">
-          <h3 className="text-label-12 uppercase tracking-wider text-gray-600 mb-1">
+          <h3 className="text-label-12 uppercase tracking-wider text-gray-1000 mb-1">
             Sources ({documents.length})
           </h3>
 
-          {isLoadingList && <p className="text-copy-13 text-gray-600 py-2">Loading…</p>}
+          {isLoadingList && <p className="text-copy-13 text-gray-1000 py-2">Loading…</p>}
 
           {!isLoadingList && documents.length === 0 && (
-            <p className="text-copy-13 text-gray-600 py-2">
+            <p className="text-copy-13 text-gray-1000 py-2">
               {isAuthenticated
                 ? 'No sources yet. Upload a file or paste a URL to get started.'
                 : 'Sign in to upload files and see your sources here.'}
@@ -195,19 +195,19 @@ export function KnowledgeBasePanel({
             {documents.map((doc) => (
               <div key={doc.id} className="flex items-center justify-between py-2.5 group">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="material-symbols-outlined text-gray-600 text-sm">
+                  <span className="material-symbols-outlined text-gray-1000 text-sm">
                     {sourceIcon(doc)}
                   </span>
                   <div className="flex flex-col min-w-0">
                     <span className="text-label-14 text-gray-1000 truncate">{doc.name}</span>
-                    <span className="text-copy-13 text-gray-600">
+                    <span className="text-copy-13 text-gray-1000">
                       {formatBytes(doc.sizeBytes)} • Indexed • {doc.chunkCount} chunks
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleDelete(doc.id)}
-                  className="material-symbols-outlined text-gray-600 hover:text-red-700 cursor-pointer text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="material-symbols-outlined text-gray-1000 hover:text-red-700 cursor-pointer text-sm opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   delete
                 </button>

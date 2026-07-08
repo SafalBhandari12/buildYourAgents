@@ -187,3 +187,34 @@ export async function updateLlmKeyOrder(order: string[]): Promise<void> {
   const res = await request('/llm-keys/order', { method: 'PUT', body: JSON.stringify({ order }) });
   await throwIfNotOk(res, 'Failed to save provider order');
 }
+
+export type FailedAttempt = {
+  provider: string;
+  model: string | null;
+  reason: string;
+};
+
+export type ChatHistoryItem = {
+  id: string;
+  message: string;
+  response: string;
+  provider: string | null;
+  model: string | null;
+  failedAttempts: string | null;
+  durationMs: number;
+  createdAt: number;
+};
+
+export type ChatHistoryPage = {
+  history: ChatHistoryItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export async function listChatHistory(page = 1): Promise<ChatHistoryPage> {
+  const res = await request(`/chat-history?page=${page}`);
+  await throwIfNotOk(res, 'Failed to load chat history');
+  return res.json();
+}

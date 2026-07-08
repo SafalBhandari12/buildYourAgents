@@ -13,6 +13,7 @@ import { FirecrawlClient } from 'firecrawl';
 import { getDb } from '../db';
 import { documents } from '../db/document-schema';
 import { llmApiKeys } from '../db/metrics-schema';
+import { chatHistory } from '../db/chat-history-schema';
 import { buildClientForKey, isCoolingDown, resolveOrder } from '../lib/llmChain';
 
 import {
@@ -156,6 +157,28 @@ ${context}`,
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
+    const startedAt = Date.now();
+    let responseText = '';
+    const failedAttempts: { provider: string; model: string | null; reason: string }[] = [];
+
+    function errorReason(err: unknown): string {
+      if (err instanceof OpenAIRateLimitError) return 'Rate limited by provider';
+      if (err instanceof Error) return err.message;
+      return 'Unknown error';
+    }
+
+    async function logHistory(provider: string | null, model: string | null) {
+      await db.insert(chatHistory).values({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        message,
+        response: responseText,
+        provider,
+        model,
+        failedAttempts: failedAttempts.length > 0 ? JSON.stringify(failedAttempts) : null,
+        durationMs: Date.now() - startedAt,
+      });
+    }
 
     (async () => {
       try {
@@ -164,6 +187,11 @@ ${context}`,
             try {
               await checkQueryMetrics(c.env.DB, user.id, 10);
             } catch {
+              failedAttempts.push({
+                provider: 'platform',
+                model: 'gpt-5.4-mini',
+                reason: 'Query quota exceeded',
+              });
               continue; // no platform quota left — try the next candidate
             }
 
@@ -177,20 +205,33 @@ ${context}`,
 
               for await (const chunk of stream) {
                 const delta = chunk.choices[0]?.delta?.content;
-                if (delta) await writer.write(encoder.encode(delta));
+                if (delta) {
+                  responseText += delta;
+                  await writer.write(encoder.encode(delta));
+                }
               }
 
               // Deduct only after a successful stream, and only for the platform's own key
               await deductQueryMetrics(c.env.DB, user.id, 10);
+              await logHistory('platform', 'gpt-5.4-mini');
               return;
             } catch (err) {
               console.error('Platform LLM failed:', err);
+              failedAttempts.push({ provider: 'platform', model: 'gpt-5.4-mini', reason: errorReason(err) });
               continue;
             }
           }
 
           const row = keyById.get(candidateId);
-          if (!row || isCoolingDown(row, now)) continue;
+          if (!row) continue;
+          if (isCoolingDown(row, now)) {
+            failedAttempts.push({
+              provider: row.provider,
+              model: row.model,
+              reason: 'Skipped — still cooling down from a recent rate limit',
+            });
+            continue;
+          }
 
           try {
             const { client, model } = await buildClientForKey(row, c.env.LLM_KEY_ENCRYPTION_SECRET);
@@ -198,8 +239,12 @@ ${context}`,
 
             for await (const chunk of stream) {
               const delta = chunk.choices[0]?.delta?.content;
-              if (delta) await writer.write(encoder.encode(delta));
+              if (delta) {
+                responseText += delta;
+                await writer.write(encoder.encode(delta));
+              }
             }
+            await logHistory(row.provider, model);
             return;
           } catch (err) {
             if (err instanceof OpenAIRateLimitError) {
@@ -209,13 +254,14 @@ ${context}`,
                 .where(eq(llmApiKeys.id, row.id));
             }
             console.error(`LLM key ${row.id} (${row.provider}) failed:`, err);
+            failedAttempts.push({ provider: row.provider, model: row.model, reason: errorReason(err) });
             continue;
           }
         }
 
-        await writer.write(
-          encoder.encode('All configured LLM providers failed or are rate-limited. Please try again shortly.'),
-        );
+        responseText = 'All configured LLM providers failed or are rate-limited. Please try again shortly.';
+        await writer.write(encoder.encode(responseText));
+        await logHistory(null, null);
       } finally {
         await writer.close();
       }

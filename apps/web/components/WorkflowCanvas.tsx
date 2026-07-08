@@ -51,7 +51,7 @@ function WorkflowNode({ data }: NodeProps<Node<WorkflowNodeData>>) {
       <span className="material-symbols-outlined text-gray-1000">{data.icon}</span>
       <div className="text-left">
         <div className="text-label-14 text-gray-1000">{data.label}</div>
-        <div className="text-copy-13 text-gray-600">{data.sublabel}</div>
+        <div className="text-copy-13 text-gray-1000">{data.sublabel}</div>
       </div>
       {(data.kind === 'trigger' || data.kind === 'agent') && (
         <Handle

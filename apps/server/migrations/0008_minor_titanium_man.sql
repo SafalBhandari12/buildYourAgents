@@ -1,0 +1,1 @@
+ALTER TABLE `chat_history` ADD `failed_attempts` text;

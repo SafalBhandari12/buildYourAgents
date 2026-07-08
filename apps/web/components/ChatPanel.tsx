@@ -97,7 +97,7 @@ export function ChatPanel({
       <div className="px-4 pt-2 flex justify-end flex-shrink-0">
         <button
           onClick={() => setMessages([GREETING])}
-          className="text-gray-600 hover:text-gray-1000 transition-colors"
+          className="text-gray-1000 hover:text-gray-1000 transition-colors"
           title="Clear conversation"
         >
           <span className="material-symbols-outlined text-sm">refresh</span>
@@ -108,7 +108,7 @@ export function ChatPanel({
         {messages.map((m) =>
           m.role === 'assistant' ? (
             <div key={m.id} className="flex flex-col items-start max-w-[88%]">
-              <span className="text-label-12 text-gray-600 mb-1 ml-1">RAG Agent</span>
+              <span className="text-label-12 text-gray-1000 mb-1 ml-1">RAG Agent</span>
               <div className="bg-background-100 px-3 py-2.5 rounded-lg rounded-tl-none">
                 <p className="text-copy-14 text-gray-1000 whitespace-pre-wrap">
                   {m.content}
@@ -119,7 +119,7 @@ export function ChatPanel({
                     {m.sources.map((s) => (
                       <div
                         key={s.source}
-                        className="text-xs text-gray-600 flex gap-1 items-center bg-gray-200 px-2 py-1 rounded-md"
+                        className="text-xs text-gray-1000 flex gap-1 items-center bg-gray-200 px-2 py-1 rounded-md"
                       >
                         <span className="material-symbols-outlined text-[12px]">description</span>
                         <span className="text-label-12">Source: {s.source}</span>
@@ -131,7 +131,7 @@ export function ChatPanel({
             </div>
           ) : (
             <div key={m.id} className="flex flex-col items-end max-w-[88%] self-end">
-              <span className="text-label-12 text-gray-600 mb-1 mr-1">You</span>
+              <span className="text-label-12 text-gray-1000 mb-1 mr-1">You</span>
               <div className="bg-gray-1000 text-background-100 px-3 py-2.5 rounded-lg rounded-tr-none">
                 <p className="text-copy-14">{m.content}</p>
               </div>
@@ -153,7 +153,7 @@ export function ChatPanel({
           <button
             type="submit"
             disabled={isSending || !input.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-1000 p-1 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-1000 hover:text-gray-1000 p-1 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-lg">send</span>
           </button>
