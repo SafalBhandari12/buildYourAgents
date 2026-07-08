@@ -50,6 +50,41 @@
       "when": 1783440808719,
       "tag": "0006_futuristic_justin_hammer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1783492036196,
+      "tag": "0007_loose_major_mapleleaf",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1783492914747,
+      "tag": "0008_minor_titanium_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1783504420538,
+      "tag": "0009_brave_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1783504752945,
+      "tag": "0010_lively_pet_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1783506707146,
+      "tag": "0011_previous_puck",
+      "breakpoints": true
     }
   ]
 }

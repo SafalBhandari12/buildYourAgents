@@ -187,3 +187,87 @@ export async function updateLlmKeyOrder(order: string[]): Promise<void> {
   const res = await request('/llm-keys/order', { method: 'PUT', body: JSON.stringify({ order }) });
   await throwIfNotOk(res, 'Failed to save provider order');
 }
+
+export type FailedAttempt = {
+  provider: string;
+  model: string | null;
+  reason: string;
+};
+
+export type ChatHistoryItem = {
+  id: string;
+  message: string;
+  response: string;
+  provider: string | null;
+  model: string | null;
+  failedAttempts: string | null;
+  durationMs: number;
+  createdAt: number;
+};
+
+export type ChatHistoryPage = {
+  history: ChatHistoryItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export async function listChatHistory(page = 1): Promise<ChatHistoryPage> {
+  const res = await request(`/chat-history?page=${page}`);
+  await throwIfNotOk(res, 'Failed to load chat history');
+  return res.json();
+}
+
+export type AgentSettings = {
+  temperature: number;
+  systemPrompt: string | null;
+  maxInputTokens: number;
+  maxOutputTokens: number;
+  minTokenLimit: number;
+  maxTokenLimit: number;
+};
+
+export async function getAgentSettings(): Promise<AgentSettings> {
+  const res = await request('/agent-settings');
+  await throwIfNotOk(res, 'Failed to load agent settings');
+  return res.json();
+}
+
+export async function updateAgentSettings(input: {
+  temperature: number;
+  systemPrompt: string;
+  maxInputTokens: number;
+  maxOutputTokens: number;
+}): Promise<void> {
+  const res = await request('/agent-settings', { method: 'PUT', body: JSON.stringify(input) });
+  await throwIfNotOk(res, 'Failed to save agent settings');
+}
+
+export type ChunkingStrategy = 'markdown' | 'recursive';
+
+export type KnowledgeBaseSettings = {
+  chunkSize: number;
+  chunkOverlap: number;
+  chunkingStrategy: ChunkingStrategy;
+  minChunkSize: number;
+  maxChunkSize: number;
+  minChunkOverlap: number;
+  maxChunkOverlap: number;
+  isFreeTier: boolean;
+};
+
+export async function getKnowledgeBaseSettings(): Promise<KnowledgeBaseSettings> {
+  const res = await request('/knowledge-settings');
+  await throwIfNotOk(res, 'Failed to load knowledge base settings');
+  return res.json();
+}
+
+export async function updateKnowledgeBaseSettings(input: {
+  chunkSize: number;
+  chunkOverlap: number;
+  chunkingStrategy: ChunkingStrategy;
+}): Promise<void> {
+  const res = await request('/knowledge-settings', { method: 'PUT', body: JSON.stringify(input) });
+  await throwIfNotOk(res, 'Failed to save knowledge base settings');
+}

@@ -1,5 +1,12 @@
 import { RecursiveCharacterTextSplitter, MarkdownTextSplitter } from '@langchain/textsplitters';
 import { Document } from '@langchain/core/documents';
+import type { ChunkingStrategy } from '../schema';
+
+export interface ChunkingOptions {
+  chunkSize: number;
+  chunkOverlap: number;
+  strategy: ChunkingStrategy;
+}
 
 export interface ChunkMetadata {
   source: string;
@@ -27,27 +34,29 @@ interface Section {
   content: string;
 }
 
-const splitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 1200,
-  chunkOverlap: 200,
+function buildSplitter(chunkSize: number, chunkOverlap: number) {
+  return new RecursiveCharacterTextSplitter({
+    chunkSize,
+    chunkOverlap,
 
-  separators: [
-    '\n###### ',
-    '\n##### ',
-    '\n#### ',
-    '\n### ',
-    '\n## ',
-    '\n\n',
-    '\n',
-    '. ',
-    '! ',
-    '? ',
-    '; ',
-    ', ',
-    ' ',
-    '',
-  ],
-});
+    separators: [
+      '\n###### ',
+      '\n##### ',
+      '\n#### ',
+      '\n### ',
+      '\n## ',
+      '\n\n',
+      '\n',
+      '. ',
+      '! ',
+      '? ',
+      '; ',
+      ', ',
+      ' ',
+      '',
+    ],
+  });
+}
 
 /**
  * Splits markdown into logical sections using headers.
@@ -103,11 +112,15 @@ export async function splitMarkdownDocument(
   markdown: string,
   source: string,
   userId: string,
+  options: ChunkingOptions,
   tier?: string,
 ): Promise<Document<ChunkMetadata>[]> {
-  if (tier === 'free') {
-    return splitSimpleText(markdown, source, userId);
+  // Header-aware markdown splitting is a paid-tier feature — free tier is silently
+  // downgraded to plain recursive splitting regardless of the user's saved preference.
+  if (tier === 'free' || options.strategy === 'recursive') {
+    return splitSimpleText(markdown, source, userId, options);
   }
+  const splitter = buildSplitter(options.chunkSize, options.chunkOverlap);
   const sections = parseMarkdown(markdown);
 
   const documentTitle =
@@ -198,7 +211,9 @@ async function splitSimpleText(
   text: string,
   source: string,
   userId: string,
+  options: ChunkingOptions,
 ): Promise<Document<ChunkMetadata>[]> {
+  const splitter = buildSplitter(options.chunkSize, options.chunkOverlap);
   const pieces = await splitter.splitText(text);
 
   const docs: Document<ChunkMetadata>[] = [];

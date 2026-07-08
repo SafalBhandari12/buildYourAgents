@@ -53,7 +53,7 @@ export function AuthModal({
       <div className="w-full max-w-[380px] bg-gray-100 rounded-md shadow-modal p-6 flex flex-col gap-4 relative">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-600 hover:text-gray-1000 transition-colors"
+          className="absolute right-4 top-4 text-gray-1000 hover:text-gray-1000 transition-colors"
         >
           <span className="material-symbols-outlined text-lg">close</span>
         </button>
@@ -62,7 +62,7 @@ export function AuthModal({
           <div className="flex flex-col items-center gap-4 text-center py-4">
             <span className="material-symbols-outlined text-blue-900 text-3xl">mail</span>
             <h2 className="text-heading-20 text-gray-1000">Check Your Email</h2>
-            <p className="text-copy-14 text-gray-900">
+            <p className="text-copy-14 text-gray-1000">
               We sent a verification link to <span className="text-gray-1000">{submittedEmail}</span>. Verify
               your address, then sign in below.
             </p>
@@ -97,7 +97,7 @@ export function AuthModal({
 
               {mode === 'signup' && (
                 <label className="flex flex-col gap-1">
-                  <span className="text-label-14 text-gray-900">Name</span>
+                  <span className="text-label-14 text-gray-1000">Name</span>
                   <input
                     className="input-field"
                     type="text"
@@ -111,7 +111,7 @@ export function AuthModal({
               )}
 
               <label className="flex flex-col gap-1">
-                <span className="text-label-14 text-gray-900">Email</span>
+                <span className="text-label-14 text-gray-1000">Email</span>
                 <input
                   className="input-field"
                   type="email"
@@ -124,7 +124,7 @@ export function AuthModal({
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-label-14 text-gray-900">Password</span>
+                <span className="text-label-14 text-gray-1000">Password</span>
                 <input
                   className="input-field"
                   type="password"
@@ -148,7 +148,7 @@ export function AuthModal({
               </button>
             </form>
 
-            <p className="text-copy-14 text-gray-900 text-center">
+            <p className="text-copy-14 text-gray-1000 text-center">
               {mode === 'signin' ? (
                 <>
                   Don&rsquo;t have an account?{' '}

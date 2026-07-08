@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
-import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { users } from './auth-schema';
 
 export const metrics = sqliteTable(
@@ -20,6 +20,19 @@ export const metrics = sqliteTable(
     pagesCrawledRemaining: integer('pages_crawled_remaining').notNull().default(40),
     // JSON array of llmApiKeys.id or the literal "platform", in execution priority order.
     llmChainOrder: text('llm_chain_order'),
+    // AI Agent orchestrator settings, configurable from the canvas's "AI Agent" node.
+    temperature: real('temperature').notNull().default(0.7),
+    systemPrompt: text('system_prompt'),
+    maxInputTokens: integer('max_input_tokens').notNull().default(1000),
+    maxOutputTokens: integer('max_output_tokens').notNull().default(500),
+    // Knowledge base ingestion chunking settings, configurable from the canvas's
+    // "Knowledge Base" node. 'markdown' (header-aware) is silently forced down to
+    // 'recursive' (plain text) for free-tier users regardless of this setting.
+    chunkSize: integer('chunk_size').notNull().default(1200),
+    chunkOverlap: integer('chunk_overlap').notNull().default(200),
+    chunkingStrategy: text('chunking_strategy', { enum: ['markdown', 'recursive'] })
+      .notNull()
+      .default('markdown'),
   },
   (table) => [uniqueIndex('metrics_user_id_idx').on(table.userId)],
 );

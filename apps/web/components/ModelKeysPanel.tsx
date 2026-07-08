@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ApiError,
   createLlmKey,
   deleteLlmKey,
   listLlmKeys,
   updateLlmKeyOrder,
-  type LlmKeyItem,
+  type LlmKeysResponse,
   type LlmProvider,
 } from '@/lib/api';
 import { useAuthModal } from '@/components/AuthModalContext';
@@ -50,9 +51,7 @@ function formatDate(ms: number): string {
 
 export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { open } = useAuthModal();
-  const [keys, setKeys] = useState<LlmKeyItem[]>([]);
-  const [order, setOrder] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -61,39 +60,50 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
   const [model, setModel] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
 
-  async function refresh() {
-    setIsLoading(true);
-    try {
-      const data = await listLlmKeys();
-      setKeys(data.keys);
-      setOrder(data.order);
-    } catch {
-      setError('Failed to load provider keys.');
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const { data, isLoading } = useQuery({
+    queryKey: ['llm-keys'],
+    queryFn: listLlmKeys,
+    enabled: isAuthenticated,
+  });
+  const keys = data?.keys ?? [];
+  const order = data?.order ?? [];
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setKeys([]);
-      setOrder([]);
-      setIsLoading(false);
-      return;
-    }
-    refresh();
-  }, [isAuthenticated]);
-
-  async function saveOrder(next: string[]) {
-    setOrder(next);
-    try {
-      await updateLlmKeyOrder(next);
-    } catch (err) {
+  const orderMutation = useMutation({
+    mutationFn: updateLlmKeyOrder,
+    onMutate: async (newOrder) => {
+      await queryClient.cancelQueries({ queryKey: ['llm-keys'] });
+      const previous = queryClient.getQueryData<LlmKeysResponse>(['llm-keys']);
+      queryClient.setQueryData<LlmKeysResponse>(['llm-keys'], (old) =>
+        old ? { ...old, order: newOrder } : old,
+      );
+      return { previous };
+    },
+    onError: (err, _newOrder, context) => {
+      if (context?.previous) queryClient.setQueryData(['llm-keys'], context.previous);
       setError(err instanceof ApiError ? err.message : 'Failed to save order.');
-      refresh();
-    }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['llm-keys'] }),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createLlmKey,
+    onSuccess: () => {
+      setIsAddOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['llm-keys'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to add provider key.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteLlmKey,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['llm-keys'] }),
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to delete provider key.'),
+  });
+
+  function saveOrder(next: string[]) {
+    setError(null);
+    orderMutation.mutate(next);
   }
 
   function handleMove(index: number, direction: -1 | 1) {
@@ -121,36 +131,23 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
     setIsAddOpen(true);
   }
 
-  async function handleCreate() {
+  function handleCreate() {
     if (!name.trim() || !model.trim() || !apiKey.trim()) return;
     if (PROVIDERS_REQUIRING_BASE_URL.has(provider) && !baseUrl.trim()) return;
 
-    setIsCreating(true);
     setError(null);
-    try {
-      await createLlmKey({
-        provider,
-        name: name.trim(),
-        model: model.trim(),
-        apiKey: apiKey.trim(),
-        baseUrl: baseUrl.trim() || undefined,
-      });
-      setIsAddOpen(false);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to add provider key.');
-    } finally {
-      setIsCreating(false);
-    }
+    createMutation.mutate({
+      provider,
+      name: name.trim(),
+      model: model.trim(),
+      apiKey: apiKey.trim(),
+      baseUrl: baseUrl.trim() || undefined,
+    });
   }
 
-  async function handleDelete(id: string) {
-    try {
-      await deleteLlmKey(id);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete provider key.');
-    }
+  function handleDelete(id: string) {
+    setError(null);
+    deleteMutation.mutate(id);
   }
 
   const platformIncluded = order.includes('platform');
@@ -160,7 +157,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
 
   return (
     <div className="px-4 py-4 flex-grow overflow-y-auto flex flex-col gap-4">
-      <p className="text-copy-13 text-gray-600 leading-relaxed">
+      <p className="text-copy-13 text-gray-1000 leading-relaxed">
         Requests try each provider below in order. If one fails or is rate-limited, the next one is
         used automatically. Your own keys are never billed against your platform quota.
       </p>
@@ -170,17 +167,17 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
       )}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-label-12 uppercase tracking-wider text-gray-600">Execution Order</h3>
+        <h3 className="text-label-12 uppercase tracking-wider text-gray-1000">Execution Order</h3>
         <button onClick={handleOpenAdd} className="btn-primary px-3 py-1.5 flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">add</span>
           Add Provider Key
         </button>
       </div>
 
-      {isLoading && <p className="text-copy-13 text-gray-600 py-2">Loading…</p>}
+      {isLoading && <p className="text-copy-13 text-gray-1000 py-2">Loading…</p>}
 
       {!isLoading && !isAuthenticated && (
-        <p className="text-copy-13 text-gray-600 py-2">Sign in to configure your model providers.</p>
+        <p className="text-copy-13 text-gray-1000 py-2">Sign in to configure your model providers.</p>
       )}
 
       <div className="flex flex-col divide-y divide-gray-alpha-200">
@@ -191,13 +188,13 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
           return (
             <div key={id} className="flex items-center justify-between py-2.5 gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-label-12 text-gray-600 w-4 flex-shrink-0">{index + 1}</span>
+                <span className="text-label-12 text-gray-1000 w-4 flex-shrink-0">{index + 1}</span>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-label-14 text-gray-1000 truncate">
                       {key ? key.name : 'Platform Default'}
                     </span>
-                    <span className="text-label-12 text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-sm">
+                    <span className="text-label-12 text-gray-1000 bg-gray-200 px-1.5 py-0.5 rounded-sm">
                       {key ? PROVIDER_LABELS[key.provider] : 'Platform'}
                     </span>
                     {isCoolingDown && (
@@ -206,7 +203,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
                       </span>
                     )}
                   </div>
-                  <span className="text-copy-13 text-gray-600">
+                  <span className="text-copy-13 text-gray-1000">
                     {key ? `${key.model} • Added ${formatDate(key.createdAt)}` : 'Included in the platform plan'}
                   </span>
                 </div>
@@ -216,28 +213,28 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
                 <button
                   onClick={() => handleMove(index, -1)}
                   disabled={index === 0}
-                  className="material-symbols-outlined text-gray-600 hover:text-gray-1000 text-lg disabled:opacity-30"
+                  className="material-symbols-outlined text-gray-1000 hover:text-gray-1000 text-lg disabled:opacity-30"
                 >
                   arrow_upward
                 </button>
                 <button
                   onClick={() => handleMove(index, 1)}
                   disabled={index === order.length - 1}
-                  className="material-symbols-outlined text-gray-600 hover:text-gray-1000 text-lg disabled:opacity-30"
+                  className="material-symbols-outlined text-gray-1000 hover:text-gray-1000 text-lg disabled:opacity-30"
                 >
                   arrow_downward
                 </button>
                 {key ? (
                   <button
                     onClick={() => handleDelete(key.id)}
-                    className="material-symbols-outlined text-gray-600 hover:text-red-700 text-lg"
+                    className="material-symbols-outlined text-gray-1000 hover:text-red-700 text-lg"
                   >
                     delete
                   </button>
                 ) : (
                   <button
                     onClick={() => handleTogglePlatform(false)}
-                    className="material-symbols-outlined text-gray-600 hover:text-red-700 text-lg"
+                    className="material-symbols-outlined text-gray-1000 hover:text-red-700 text-lg"
                     title="Disable platform default"
                   >
                     toggle_on
@@ -253,15 +250,15 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-label-14 text-gray-1000">Platform Default</span>
-                <span className="text-label-12 text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-sm">
+                <span className="text-label-12 text-gray-1000 bg-gray-200 px-1.5 py-0.5 rounded-sm">
                   Platform
                 </span>
               </div>
-              <span className="text-copy-13 text-gray-600">Currently disabled</span>
+              <span className="text-copy-13 text-gray-1000">Currently disabled</span>
             </div>
             <button
               onClick={() => handleTogglePlatform(true)}
-              className="material-symbols-outlined text-gray-600 hover:text-gray-1000 text-lg"
+              className="material-symbols-outlined text-gray-1000 hover:text-gray-1000 text-lg"
               title="Enable platform default"
             >
               toggle_off
@@ -276,7 +273,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             <h3 className="text-heading-16 text-gray-1000">Add Provider Key</h3>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">Provider</span>
+              <span className="text-label-14 text-gray-1000">Provider</span>
               <select
                 className="input-field"
                 value={provider}
@@ -295,7 +292,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">Name</span>
+              <span className="text-label-14 text-gray-1000">Name</span>
               <input
                 className="input-field"
                 placeholder="Personal Groq Key"
@@ -305,7 +302,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">Model</span>
+              <span className="text-label-14 text-gray-1000">Model</span>
               <input
                 className="input-field"
                 placeholder={MODEL_PLACEHOLDERS[provider]}
@@ -315,7 +312,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-label-14 text-gray-900">API Key</span>
+              <span className="text-label-14 text-gray-1000">API Key</span>
               <input
                 className="input-field"
                 type="password"
@@ -327,7 +324,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
 
             {PROVIDERS_REQUIRING_BASE_URL.has(provider) && (
               <label className="flex flex-col gap-1">
-                <span className="text-label-14 text-gray-900">Base URL</span>
+                <span className="text-label-14 text-gray-1000">Base URL</span>
                 <input
                   className="input-field"
                   placeholder="https://your-endpoint.example.com/v1"
@@ -344,7 +341,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
               <button
                 className="btn-primary px-3 py-2 disabled:opacity-50"
                 disabled={
-                  isCreating ||
+                  createMutation.isPending ||
                   !name.trim() ||
                   !model.trim() ||
                   !apiKey.trim() ||
@@ -352,7 +349,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
                 }
                 onClick={handleCreate}
               >
-                {isCreating ? 'Adding…' : 'Add Provider Key'}
+                {createMutation.isPending ? 'Adding…' : 'Add Provider Key'}
               </button>
             </div>
           </div>
