@@ -54,7 +54,9 @@ jobs:
   deploy:
     name: Deploy apps/server to Cloudflare
     needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: production
     steps:
