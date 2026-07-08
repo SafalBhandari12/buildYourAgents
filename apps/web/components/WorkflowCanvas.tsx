@@ -72,7 +72,7 @@ const nodeTypes = { workflow: WorkflowNode };
  * Material Symbols font — loaded via a plain <link>, not next/font — hasn't downloaded
  * yet, so nodes measure smaller than their final size and the viewport ends up zoomed
  * into that stale, too-small/off-center fit with nothing re-triggering it. Re-fit once
- * fonts (and a couple of animation frames for layout to settle) are actually ready
+ * fonts (and a couple of animation frames for layout to settle) are actually ready.
  */
 function FitViewOnReady() {
   const { fitView } = useReactFlow();
