@@ -1,90 +1,70 @@
-import Image, { type ImageProps } from 'next/image';
-import { Button } from '@repo/ui/button';
-import styles from './page.module.css';
+'use client';
 
-type Props = Omit<ImageProps, 'src'> & {
-  srcLight: string;
-  srcDark: string;
-};
+import { useState } from 'react';
+import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
+import { authClient } from '@/lib/auth-client';
+import { useMediaQuery } from '@/lib/use-media-query';
+import { AuthModalProvider } from '@/components/AuthModalContext';
+import { TopAppBar } from '@/components/TopAppBar';
+import { WorkflowCanvas } from '@/components/WorkflowCanvas';
+import { IntegrationPanel } from '@/components/IntegrationPanel';
 
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
-
+function ResizeHandle() {
   return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
+    <Separator
+      className="relative w-px bg-gray-alpha-300 transition-colors hover:bg-gray-600 active:bg-blue-700
+        after:absolute after:inset-y-0 after:-left-1.5 after:-right-1.5 after:content-[''] after:cursor-col-resize"
+    />
   );
-};
+}
 
-export default function Home() {
+const noopStorage = { getItem: () => null, setItem: () => {} };
+
+export default function DashboardPage() {
+  const { data: session } = authClient.useSession();
+  const [metricsVersion, setMetricsVersion] = useState(0);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: 'dashboard-panels-v3',
+    panelIds: ['workflow', 'integration'],
+    storage: typeof window !== 'undefined' ? window.localStorage : noopStorage,
+  });
+
+  const workflow = (
+    <WorkflowCanvas
+      isAuthenticated={!!session}
+      onIngested={() => setMetricsVersion((v) => v + 1)}
+      onMessageSent={() => setMetricsVersion((v) => v + 1)}
+    />
+  );
+  const integration = <IntegrationPanel isAuthenticated={!!session} />;
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
+    <AuthModalProvider>
+      <TopAppBar session={session ?? null} refreshKey={metricsVersion} />
+      <main className={isDesktop ? 'pt-16 h-[calc(100vh-4rem)]' : 'pt-16'}>
+        {isDesktop ? (
+          <Group
+            orientation="horizontal"
+            className="h-full"
+            defaultLayout={defaultLayout}
+            onLayoutChanged={onLayoutChanged}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.dev/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
+            <Panel id="workflow" defaultSize={68} minSize={30}>
+              {workflow}
+            </Panel>
+            <ResizeHandle />
+            <Panel id="integration" defaultSize={32} minSize={20}>
+              {integration}
+            </Panel>
+          </Group>
+        ) : (
+          <div className="flex flex-col divide-y divide-gray-alpha-300">
+            <div className="h-[70vh] flex-shrink-0">{workflow}</div>
+            <div className="h-[70vh] flex-shrink-0">{integration}</div>
+          </div>
+        )}
       </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image aria-hidden src="/window.svg" alt="Window icon" width={16} height={16} />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.dev?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image aria-hidden src="/globe.svg" alt="Globe icon" width={16} height={16} />
-          Go to turborepo.dev →
-        </a>
-      </footer>
-    </div>
+    </AuthModalProvider>
   );
 }

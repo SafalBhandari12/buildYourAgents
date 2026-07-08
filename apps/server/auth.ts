@@ -18,6 +18,13 @@ export function auth(env: BetterAuthEnv['Bindings']) {
       secret: env.BETTER_AUTH_SECRET,
       baseURL: new URL(env.BETTER_AUTH_URL).origin,
       basePath: '/api/v1/auth',
+      trustedOrigins: [env.FRONTEND_URL],
+      advanced: {
+        defaultCookieAttributes: {
+          sameSite: 'Strict',
+          secure: true,
+        },
+      },
       user: {
         additionalFields: {
           tier: {

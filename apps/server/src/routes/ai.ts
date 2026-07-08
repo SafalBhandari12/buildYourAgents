@@ -1,6 +1,6 @@
 import { Hono, Env } from 'hono';
-import { streamText } from 'hono/streaming';
-import { openaiMiddleware } from '../lib/gpt';
+import OpenAI, { RateLimitError as OpenAIRateLimitError } from 'openai';
+import { eq, asc } from 'drizzle-orm';
 import { chatInputSchema, ingestInputSchema } from '../schema';
 import { parseFile } from '../lib/llamaParse';
 import { asyncHandler } from '../lib/errorHandler';
@@ -10,6 +10,10 @@ import { splitMarkdownDocument } from '../lib/splitter';
 import { vectorizeDocuments } from '../lib/vectorizeDocuments';
 import { semanticSearch } from '../lib/search';
 import { FirecrawlClient } from 'firecrawl';
+import { getDb } from '../db';
+import { documents } from '../db/document-schema';
+import { llmApiKeys } from '../db/metrics-schema';
+import { buildClientForKey, isCoolingDown, resolveOrder } from '../lib/llmChain';
 
 import {
   checkMetrics,
@@ -39,6 +43,7 @@ ai.post(
 
     let markdown: string;
     let sourceName: string;
+    const sourceType: 'file' | 'url' = file ? 'file' : 'url';
 
     let deductedChunks = 0;
     let deductedPagesCrawled = 0;
@@ -81,6 +86,17 @@ ai.post(
 
       await vectorizeDocuments(c.env, chunks);
 
+      const db = getDb(c.env.DB);
+      await db.insert(documents).values({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        name: sourceName,
+        type: sourceType,
+        sizeBytes: file ? file.size : null,
+        chunkCount: chunks.length,
+        chunkIds: JSON.stringify(chunks.map((c) => c.metadata.chunkId)),
+      });
+
       return c.json({ msg: 'Document ingested successfully', chunks: chunks.length });
     } catch (err) {
       await refundMetrics(
@@ -96,14 +112,10 @@ ai.post(
 
 ai.post(
   '/chat',
-  openaiMiddleware,
   asyncHandler<chatEnv>(async (c) => {
     const body = await c.req.json();
     const { message } = await chatInputSchema.parseAsync(body);
     const user = c.get('user');
-
-    // Check query (1) and token (10) quota before any API calls
-    await checkQueryMetrics(c.env.DB, user.id, 10);
 
     const results = await semanticSearch(c.env.AI, c.env.VECTORIZE, message, user.id);
 
@@ -112,41 +124,120 @@ ai.post(
         ? results.map((r) => `[${r.source}] ${r.pageContent}`).join('\n\n---\n\n')
         : 'No relevant context found.';
 
-    const ai = c.get('openai');
+    const sources = Array.from(
+      new Map(results.map((r) => [r.source, { source: r.source, documentTitle: r.documentTitle }])).values(),
+    );
 
-    return streamText(c, async (streamWriter) => {
-      try {
-        const llmResponse = await ai.responses.create({
-          model: 'gpt-5.4-mini',
-          input: [
-            {
-              role: 'system',
-              content: `You are a helpful assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, just answer based on your own knowledge.
+    const messages = [
+      {
+        role: 'system' as const,
+        content: `You are a helpful assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, just answer based on your own knowledge.
 
 Context:
 ${context}`,
-            },
-            {
-              role: 'user',
-              content: message,
-            },
-          ],
-          stream: true,
-        });
+      },
+      { role: 'user' as const, content: message },
+    ];
 
-        for await (const event of llmResponse) {
-          if (event.type === 'response.output_text.delta') {
-            await streamWriter.write(event.delta);
+    const db = getDb(c.env.DB);
+    const [keys, m] = await Promise.all([
+      db.select().from(llmApiKeys).where(eq(llmApiKeys.userId, user.id)).orderBy(asc(llmApiKeys.createdAt)),
+      ensureMetrics(c.env.DB, user.id),
+    ]);
+    const order = resolveOrder(m.llmChainOrder, keys.map((k) => k.id));
+    const keyById = new Map(keys.map((k) => [k.id, k]));
+    const now = Date.now();
+
+    // Hono's streamText() (and the underlying c.newResponse()) can't skip Cloudflare's
+    // automatic response compression, which buffers the *entire* body before compressing
+    // it — defeating streaming outright for any client that sends Accept-Encoding (i.e.
+    // every browser). Building the Response by hand lets us pass the Workers-specific
+    // `encodeBody: 'manual'` option, which opts this response out of that compression.
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+
+    (async () => {
+      try {
+        for (const candidateId of order) {
+          if (candidateId === 'platform') {
+            try {
+              await checkQueryMetrics(c.env.DB, user.id, 10);
+            } catch {
+              continue; // no platform quota left — try the next candidate
+            }
+
+            try {
+              const client = new OpenAI({ apiKey: c.env.OPENAI_API_KEY, baseURL: c.env.AZURE_BASE_URl });
+              const stream = await client.chat.completions.create({
+                model: 'gpt-5.4-mini',
+                messages,
+                stream: true,
+              });
+
+              for await (const chunk of stream) {
+                const delta = chunk.choices[0]?.delta?.content;
+                if (delta) await writer.write(encoder.encode(delta));
+              }
+
+              // Deduct only after a successful stream, and only for the platform's own key
+              await deductQueryMetrics(c.env.DB, user.id, 10);
+              return;
+            } catch (err) {
+              console.error('Platform LLM failed:', err);
+              continue;
+            }
+          }
+
+          const row = keyById.get(candidateId);
+          if (!row || isCoolingDown(row, now)) continue;
+
+          try {
+            const { client, model } = await buildClientForKey(row, c.env.LLM_KEY_ENCRYPTION_SECRET);
+            const stream = await client.chat.completions.create({ model, messages, stream: true });
+
+            for await (const chunk of stream) {
+              const delta = chunk.choices[0]?.delta?.content;
+              if (delta) await writer.write(encoder.encode(delta));
+            }
+            return;
+          } catch (err) {
+            if (err instanceof OpenAIRateLimitError) {
+              await db
+                .update(llmApiKeys)
+                .set({ rateLimitTimestamp: new Date(now + 60_000) })
+                .where(eq(llmApiKeys.id, row.id));
+            }
+            console.error(`LLM key ${row.id} (${row.provider}) failed:`, err);
+            continue;
           }
         }
 
-        // Deduct only after a successful stream
-        await deductQueryMetrics(c.env.DB, user.id, 10);
-      } catch (err) {
-        console.error('Chat stream failed:', err);
-        throw err;
+        await writer.write(
+          encoder.encode('All configured LLM providers failed or are rate-limited. Please try again shortly.'),
+        );
+      } finally {
+        await writer.close();
       }
-    });
+    })();
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/plain; charset=UTF-8',
+        'X-Content-Type-Options': 'nosniff',
+        'X-RAG-Sources': JSON.stringify(sources),
+        'Cache-Control': 'no-cache, no-transform',
+        // `wrangler dev` has a known bug (cloudflare/workers-sdk#5614, #6577) where it
+        // buffers the *entire* body before gzip/br-compressing it, defeating streaming
+        // for any client that sends Accept-Encoding (every browser) — even though real
+        // deployed Workers stream compressed responses fine. Declaring the body as
+        // already "identity"-encoded stops the dev proxy from attempting to (re)compress
+        // it, which is the documented workaround. Combined with encodeBody: 'manual' so
+        // the runtime doesn't second-guess that declaration.
+        'Content-Encoding': 'identity',
+      },
+      encodeBody: 'manual',
+    } as ResponseInit);
   }),
 );
 

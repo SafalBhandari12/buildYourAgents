@@ -2,12 +2,21 @@ import { Context, Hono } from 'hono';
 import ai from './ai';
 import authRoute from './auth';
 import apiKeys from './api-keys';
+import documents from './documents';
+import metrics from './metrics';
+import llmKeys from './llm-keys';
 
 const v1 = new Hono();
 
 v1.route('/auth', authRoute);
 
 v1.route('/api-keys', apiKeys);
+
+v1.route('/documents', documents);
+
+v1.route('/metrics', metrics);
+
+v1.route('/llm-keys', llmKeys);
 
 v1.route('/', ai);
 

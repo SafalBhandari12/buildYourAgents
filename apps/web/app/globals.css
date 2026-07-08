@@ -1,50 +1,385 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@import 'tailwindcss';
+
+/*
+ * Design tokens: Vercel Geist design system, dark theme only (no light-mode toggle).
+ * Tailwind's default numeric spacing scale (p-1=4px, p-2=8px, p-3=12px, p-4=16px, p-6=24px,
+ * p-8=32px, p-10=40px, p-16=64px, p-24=96px) already matches Geist's spacing scale exactly,
+ * so it is intentionally left un-overridden below.
+ */
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Backgrounds */
+  --color-background-100: #000000;
+  --color-background-200: #000000;
+
+  /* Gray scale */
+  --color-gray-100: #1a1a1a;
+  --color-gray-200: #1f1f1f;
+  --color-gray-300: #292929;
+  --color-gray-400: #2e2e2e;
+  --color-gray-500: #454545;
+  --color-gray-600: #878787;
+  --color-gray-700: #8f8f8f;
+  --color-gray-800: #7d7d7d;
+  --color-gray-900: #a0a0a0;
+  --color-gray-1000: #ededed;
+
+  /* Gray alpha (translucent, layer over any surface) */
+  --color-gray-alpha-100: #ffffff12;
+  --color-gray-alpha-200: #ffffff17;
+  --color-gray-alpha-300: #ffffff21;
+  --color-gray-alpha-400: #ffffff24;
+  --color-gray-alpha-500: #ffffff3d;
+  --color-gray-alpha-600: #ffffff82;
+  --color-gray-alpha-700: #ffffff8a;
+  --color-gray-alpha-800: #ffffff78;
+  --color-gray-alpha-900: #ffffff9c;
+  --color-gray-alpha-1000: #ffffffeb;
+
+  /* Accent scales */
+  --color-blue-100: #06193a;
+  --color-blue-200: #022248;
+  --color-blue-300: #002f62;
+  --color-blue-400: #003674;
+  --color-blue-500: #00418b;
+  --color-blue-600: #0090ff;
+  --color-blue-700: #006efe;
+  --color-blue-800: #005be7;
+  --color-blue-900: #47a8ff;
+  --color-blue-1000: #eaf6ff;
+
+  --color-red-100: #330a11;
+  --color-red-200: #440d13;
+  --color-red-300: #5d0e17;
+  --color-red-400: #6f101b;
+  --color-red-500: #88151f;
+  --color-red-600: #f32e40;
+  --color-red-700: #f13242;
+  --color-red-800: #e2162a;
+  --color-red-900: #ff565f;
+  --color-red-1000: #ffe9ed;
+
+  --color-amber-100: #2a1700;
+  --color-amber-200: #361900;
+  --color-amber-300: #502800;
+  --color-amber-400: #5b3000;
+  --color-amber-500: #703e00;
+  --color-amber-600: #ed9a00;
+  --color-amber-700: #ffae00;
+  --color-amber-800: #ff9300;
+  --color-amber-900: #ff9300;
+  --color-amber-1000: #fff3d5;
+
+  --color-green-100: #002608;
+  --color-green-200: #00320b;
+  --color-green-300: #003a0e;
+  --color-green-400: #004615;
+  --color-green-500: #006717;
+  --color-green-600: #00952d;
+  --color-green-700: #00ac3a;
+  --color-green-800: #009432;
+  --color-green-900: #00ca50;
+  --color-green-1000: #d8ffe4;
+
+  --color-teal-100: #00231b;
+  --color-teal-200: #002b22;
+  --color-teal-300: #003d34;
+  --color-teal-400: #004035;
+  --color-teal-500: #006354;
+  --color-teal-600: #009e86;
+  --color-teal-700: #00aa95;
+  --color-teal-800: #00927f;
+  --color-teal-900: #00cfb7;
+  --color-teal-1000: #cbfff5;
+
+  --color-purple-100: #290c33;
+  --color-purple-200: #341142;
+  --color-purple-300: #47185e;
+  --color-purple-400: #541a76;
+  --color-purple-500: #642290;
+  --color-purple-600: #9440d5;
+  --color-purple-700: #9440d5;
+  --color-purple-800: #7d2bba;
+  --color-purple-900: #c472fb;
+  --color-purple-1000: #fbecff;
+
+  --color-pink-100: #310d1e;
+  --color-pink-200: #420c25;
+  --color-pink-300: #571032;
+  --color-pink-400: #5d0c34;
+  --color-pink-500: #76063f;
+  --color-pink-600: #ba0056;
+  --color-pink-700: #f12b82;
+  --color-pink-800: #e7006d;
+  --color-pink-900: #ff4d8d;
+  --color-pink-1000: #ffe9f4;
+
+  /* Typography — size/line-height/letter-spacing/weight travel together with each `text-*` utility */
+  --text-heading-72: 72px;
+  --text-heading-72--line-height: 72px;
+  --text-heading-72--letter-spacing: -4.32px;
+  --text-heading-72--font-weight: 600;
+
+  --text-heading-64: 64px;
+  --text-heading-64--line-height: 64px;
+  --text-heading-64--letter-spacing: -3.84px;
+  --text-heading-64--font-weight: 600;
+
+  --text-heading-56: 56px;
+  --text-heading-56--line-height: 56px;
+  --text-heading-56--letter-spacing: -3.36px;
+  --text-heading-56--font-weight: 600;
+
+  --text-heading-48: 48px;
+  --text-heading-48--line-height: 56px;
+  --text-heading-48--letter-spacing: -2.88px;
+  --text-heading-48--font-weight: 600;
+
+  --text-heading-40: 40px;
+  --text-heading-40--line-height: 48px;
+  --text-heading-40--letter-spacing: -2.4px;
+  --text-heading-40--font-weight: 600;
+
+  --text-heading-32: 32px;
+  --text-heading-32--line-height: 40px;
+  --text-heading-32--letter-spacing: -1.28px;
+  --text-heading-32--font-weight: 600;
+
+  --text-heading-24: 24px;
+  --text-heading-24--line-height: 32px;
+  --text-heading-24--letter-spacing: -0.96px;
+  --text-heading-24--font-weight: 600;
+
+  --text-heading-20: 20px;
+  --text-heading-20--line-height: 26px;
+  --text-heading-20--letter-spacing: -0.4px;
+  --text-heading-20--font-weight: 600;
+
+  --text-heading-16: 16px;
+  --text-heading-16--line-height: 24px;
+  --text-heading-16--letter-spacing: -0.32px;
+  --text-heading-16--font-weight: 600;
+
+  --text-heading-14: 14px;
+  --text-heading-14--line-height: 20px;
+  --text-heading-14--letter-spacing: -0.28px;
+  --text-heading-14--font-weight: 600;
+
+  --text-button-16: 16px;
+  --text-button-16--line-height: 20px;
+  --text-button-16--font-weight: 500;
+
+  --text-button-14: 14px;
+  --text-button-14--line-height: 20px;
+  --text-button-14--font-weight: 500;
+
+  --text-button-12: 12px;
+  --text-button-12--line-height: 16px;
+  --text-button-12--font-weight: 500;
+
+  --text-label-20: 20px;
+  --text-label-20--line-height: 32px;
+  --text-label-20--font-weight: 400;
+
+  --text-label-18: 18px;
+  --text-label-18--line-height: 20px;
+  --text-label-18--font-weight: 400;
+
+  --text-label-16: 16px;
+  --text-label-16--line-height: 20px;
+  --text-label-16--font-weight: 400;
+
+  --text-label-14: 14px;
+  --text-label-14--line-height: 20px;
+  --text-label-14--font-weight: 400;
+
+  --text-label-14-mono: 14px;
+  --text-label-14-mono--line-height: 20px;
+  --text-label-14-mono--font-weight: 400;
+
+  --text-label-13: 13px;
+  --text-label-13--line-height: 16px;
+  --text-label-13--font-weight: 400;
+
+  --text-label-13-mono: 13px;
+  --text-label-13-mono--line-height: 20px;
+  --text-label-13-mono--font-weight: 400;
+
+  --text-label-12: 12px;
+  --text-label-12--line-height: 16px;
+  --text-label-12--font-weight: 400;
+
+  --text-label-12-mono: 12px;
+  --text-label-12-mono--line-height: 16px;
+  --text-label-12-mono--font-weight: 400;
+
+  --text-copy-24: 24px;
+  --text-copy-24--line-height: 36px;
+  --text-copy-24--font-weight: 400;
+
+  --text-copy-20: 20px;
+  --text-copy-20--line-height: 36px;
+  --text-copy-20--font-weight: 400;
+
+  --text-copy-18: 18px;
+  --text-copy-18--line-height: 28px;
+  --text-copy-18--font-weight: 400;
+
+  --text-copy-16: 16px;
+  --text-copy-16--line-height: 24px;
+  --text-copy-16--font-weight: 400;
+
+  --text-copy-14: 14px;
+  --text-copy-14--line-height: 20px;
+  --text-copy-14--font-weight: 400;
+
+  --text-copy-14-mono: 14px;
+  --text-copy-14-mono--line-height: 20px;
+  --text-copy-14-mono--font-weight: 400;
+
+  --text-copy-13: 13px;
+  --text-copy-13--line-height: 18px;
+  --text-copy-13--font-weight: 400;
+
+  --text-copy-13-mono: 13px;
+  --text-copy-13-mono--line-height: 18px;
+  --text-copy-13-mono--font-weight: 400;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.16);
+  --shadow-popover: 0 1px 1px rgba(0, 0, 0, 0.02), 0 4px 8px -4px rgba(0, 0, 0, 0.04),
+    0 16px 24px -8px rgba(0, 0, 0, 0.06);
+  --shadow-modal: 0 1px 1px rgba(0, 0, 0, 0.02), 0 8px 16px -4px rgba(0, 0, 0, 0.04),
+    0 24px 32px -8px rgba(0, 0, 0, 0.06);
+  --shadow-focus: 0 0 0 2px #000000, 0 0 0 4px #47a8ff;
+
+  /* Motion */
+  --ease-geist: cubic-bezier(0.175, 0.885, 0.32, 1.1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   html {
     color-scheme: dark;
   }
 
-  .imgLight {
-    display: none;
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
-  .imgDark {
-    display: unset;
+
+  body {
+    @apply bg-background-100 text-gray-1000 font-sans;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+}
+
+/*
+ * Unlayered on purpose: Tailwind v4 wraps @layer rules in a CSS Cascade Layer, and
+ * unlayered stylesheets (like @xyflow/react's own CSS) always win over layered rules
+ * regardless of specificity or source order. These override the *non*-"-default"
+ * variable names (the library's own intended customization hook), so there's no
+ * competing unlayered declaration to lose against.
+ */
+.workflow-canvas {
+  width: 100%;
+  height: 100%;
+  --xy-edge-stroke: #8f8f8f;
+  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-selected: #47a8ff;
+  --xy-connectionline-stroke: #47a8ff;
+  --xy-attribution-background-color: transparent;
+  --xy-background-color: transparent;
+  --xy-background-pattern-dots-color: #ffffff2e;
+  --xy-controls-button-background-color: #1a1a1a;
+  --xy-controls-button-background-color-hover: #292929;
+  --xy-controls-button-color: #ededed;
+  --xy-controls-button-color-hover: #ffffff;
+  --xy-controls-button-border-color: #ffffff21;
+  --xy-controls-box-shadow: var(--shadow-popover);
+  --xy-minimap-background-color: #1a1a1a;
+}
+
+.workflow-canvas .react-flow__attribution {
+  background: transparent;
+}
+
+.workflow-canvas .react-flow__attribution a {
+  color: #a0a0a0;
+}
+
+@layer components {
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .btn-primary {
+    @apply bg-gray-1000 text-background-100 rounded-sm text-button-14 transition-colors;
+  }
+  .btn-primary:hover {
+    @apply bg-gray-900;
+  }
+
+  .btn-secondary {
+    @apply bg-background-100 text-gray-1000 border border-gray-alpha-400 rounded-sm text-button-14 transition-colors;
+  }
+  .btn-secondary:hover {
+    @apply border-gray-alpha-500 bg-gray-alpha-100;
+  }
+
+  .btn-tertiary {
+    @apply bg-transparent text-gray-1000 rounded-sm text-button-14 transition-colors;
+  }
+  .btn-tertiary:hover {
+    @apply bg-gray-alpha-200;
+  }
+
+  .btn-error {
+    @apply bg-red-800 text-white rounded-sm text-button-14 transition-colors;
+  }
+  .btn-error:hover {
+    @apply bg-red-700;
+  }
+
+  .input-field {
+    @apply bg-background-100 text-gray-1000 border border-gray-alpha-400 rounded-sm text-label-14 px-3 h-10 transition-colors;
+  }
+  .input-field::placeholder {
+    @apply text-gray-700;
+  }
+  .input-field:focus {
+    @apply border-gray-alpha-500;
   }
 }

@@ -36,6 +36,20 @@
       "when": 1783356896535,
       "tag": "0004_silent_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1783409289455,
+      "tag": "0005_hesitant_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1783440808719,
+      "tag": "0006_futuristic_justin_hammer",
+      "breakpoints": true
     }
   ]
 }

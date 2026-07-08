@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { users } from './auth-schema';
 
@@ -18,20 +18,30 @@ export const metrics = sqliteTable(
     tokensRemaining: integer('tokens_remaining').notNull().default(100),
     pagesCrawled: integer('pages_crawled').notNull().default(0),
     pagesCrawledRemaining: integer('pages_crawled_remaining').notNull().default(40),
+    // JSON array of llmApiKeys.id or the literal "platform", in execution priority order.
+    llmChainOrder: text('llm_chain_order'),
   },
   (table) => [uniqueIndex('metrics_user_id_idx').on(table.userId)],
 );
 
 export const llmApiKeys = sqliteTable('llm_api_keys', {
   id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   provider: text('provider', {
     enum: ['gemini', 'openAi', 'openAiCompatible', 'claude', 'deepseek', 'groq'],
   }).notNull(),
   name: text('name').notNull(),
+  model: text('model').notNull(),
+  // Required for 'openAiCompatible' and 'claude'; optional override for the rest.
+  baseUrl: text('base_url'),
   encryptedApiKey: text('encrypted_api_key').notNull(),
   expiryDate: integer('expiry_date', { mode: 'timestamp_ms' }),
   rateLimitTimestamp: integer('rate_limit_timestamp', { mode: 'timestamp_ms' }),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
 });
 
 export const metricsRelations = relations(metrics, ({ one }) => ({
