@@ -43,7 +43,7 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
 
   const [chunkSize, setChunkSize] = useState(1200);
   const [chunkOverlap, setChunkOverlap] = useState(200);
-  const [chunkingStrategy, setChunkingStrategy] = useState<ChunkingStrategy>('markdown');
+  const [chunkingStrategy, setChunkingStrategy] = useState<ChunkingStrategy>('simple');
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
@@ -244,8 +244,8 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
                 value={chunkingStrategy}
                 onChange={(e) => setChunkingStrategy(e.target.value as ChunkingStrategy)}
               >
-                <option value="markdown">Markdown-aware (splits on headers)</option>
-                <option value="recursive">Recursive (plain text, no header parsing)</option>
+                <option value="structured">Structured (splits by section headers)</option>
+                <option value="simple">Simple (plain text, no header parsing)</option>
               </select>
               <span className="text-copy-13 text-gray-600">
                 {isFreeTier

@@ -43,7 +43,7 @@ export const MAX_CHUNK_SIZE = 4000;
 export const MIN_CHUNK_OVERLAP = 0;
 export const MAX_CHUNK_OVERLAP = 1000;
 
-export const chunkingStrategySchema = z.enum(['markdown', 'recursive']);
+export const chunkingStrategySchema = z.enum(['structured', 'simple']);
 
 export const knowledgeBaseSettingsInputSchema = z
   .object({

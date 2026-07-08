@@ -244,7 +244,7 @@ export async function updateAgentSettings(input: {
   await throwIfNotOk(res, 'Failed to save agent settings');
 }
 
-export type ChunkingStrategy = 'markdown' | 'recursive';
+export type ChunkingStrategy = 'structured' | 'simple';
 
 export type KnowledgeBaseSettings = {
   chunkSize: number;

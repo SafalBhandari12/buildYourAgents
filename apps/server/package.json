@@ -18,7 +18,7 @@
     "@huggingface/inference": "^4.13.21",
     "@langchain/core": "^1.2.1",
     "@langchain/textsplitters": "^1.0.1",
-    "@llamaindex/liteparse-wasm": "^2.4.1",
+    "@llamaindex/llama-cloud": "^2.10.0",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
     "firecrawl": "^4.29.2",

@@ -1,22 +1,19 @@
-import { initSync, LiteParse } from '@llamaindex/liteparse-wasm';
-import wasmModule from '@llamaindex/liteparse-wasm/liteparse_wasm_bg.wasm';
+import { LlamaCloud } from '@llamaindex/llama-cloud';
 
-let initialized = false;
+export async function parseFile(file: File, apiKey: string): Promise<string> {
+  const client = new LlamaCloud({ apiKey });
 
-export async function parseFile(file: File): Promise<string> {
-  if (!initialized) {
-    initSync({ module: wasmModule });
-    initialized = true;
-  }
-
-  const buf = await file.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-
-  const parser = new LiteParse({
-    ocrEnabled: false,
-    outputFormat: 'markdown',
+  const fileObj = await client.files.create({
+    file,
+    purpose: 'parse',
   });
 
-  const result = await parser.parse(bytes);
-  return result.text;
+  const result = await client.parsing.parse({
+    file_id: fileObj.id,
+    tier: 'cost_effective',
+    version: 'latest',
+    expand: ['markdown_full'],
+  });
+
+  return result.markdown_full ?? '';
 }

@@ -115,9 +115,9 @@ export async function splitMarkdownDocument(
   options: ChunkingOptions,
   tier?: string,
 ): Promise<Document<ChunkMetadata>[]> {
-  // Header-aware markdown splitting is a paid-tier feature — free tier is silently
-  // downgraded to plain recursive splitting regardless of the user's saved preference.
-  if (tier === 'free' || options.strategy === 'recursive') {
+  // Header-aware structured splitting is a paid-tier feature — free tier is silently
+  // downgraded to plain simple splitting regardless of the user's saved preference.
+  if (tier === 'free' || options.strategy === 'simple') {
     return splitSimpleText(markdown, source, userId, options);
   }
   const splitter = buildSplitter(options.chunkSize, options.chunkOverlap);

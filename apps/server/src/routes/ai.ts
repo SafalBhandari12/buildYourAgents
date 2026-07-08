@@ -10,7 +10,7 @@ import {
 } from '../schema';
 import { parseFile } from '../lib/llamaParse';
 import { asyncHandler } from '../lib/errorHandler';
-import { BetterAuthEnv, chatEnv, cloudflareAiEnv, firecrawlEnv } from '../lib/env';
+import { BetterAuthEnv, chatEnv, cloudflareAiEnv, firecrawlEnv, llamaParseEnv } from '../lib/env';
 import { splitMarkdownDocument } from '../lib/splitter';
 import { vectorizeDocuments } from '../lib/vectorizeDocuments';
 import { semanticSearch } from '../lib/search';
@@ -39,7 +39,7 @@ ai.use(rateLimiterMiddleware);
 
 ai.post(
   '/ingest',
-  asyncHandler<cloudflareAiEnv & BetterAuthEnv & firecrawlEnv>(async (c) => {
+  asyncHandler<cloudflareAiEnv & BetterAuthEnv & firecrawlEnv & llamaParseEnv>(async (c) => {
     const form = await c.req.formData();
     const { file, webUrl } = ingestInputSchema.parse({
       file: form.get('file') ?? undefined,
@@ -56,8 +56,8 @@ ai.post(
 
     try {
       if (file) {
-        // PDF pipeline — local LiteParse
-        markdown = await parseFile(file);
+        // PDF pipeline — LlamaCloud parsing
+        markdown = await parseFile(file, c.env.LLAMAPARSE_API_KEY);
         sourceName = file.name;
       } else {
         // Web URL pipeline using Firecrawl

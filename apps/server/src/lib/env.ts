@@ -57,6 +57,12 @@ export type firecrawlEnv = {
   };
 };
 
+export type llamaParseEnv = {
+  Bindings: {
+    LLAMAPARSE_API_KEY: string;
+  };
+};
+
 export type BetterAuthEnv = DBEnv &
   maileriooEnv & {
     Bindings: {
