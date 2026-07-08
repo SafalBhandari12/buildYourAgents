@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiError, createApiKey } from '@/lib/api';
 import { useAuthModal } from '@/components/AuthModalContext';
 
@@ -94,21 +95,26 @@ function CopyableRow({ value }: { value: string }) {
   );
 }
 
-export function IntegrationsPage({
-  isAuthenticated,
-  onCreated,
-}: {
-  isAuthenticated: boolean;
-  onCreated: () => void;
-}) {
+export function IntegrationsPage({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { open } = useAuthModal();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>('cURL');
   const [copied, setCopied] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const createMutation = useMutation({
+    mutationFn: createApiKey,
+    onSuccess: (created) => {
+      setRevealedKey(created.key);
+      setIsCreateOpen(false);
+      setNewKeyName('');
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to create API key.'),
+  });
 
   async function handleCopy() {
     await navigator.clipboard.writeText(SNIPPETS[activeTab]);
@@ -124,21 +130,10 @@ export function IntegrationsPage({
     setIsCreateOpen(true);
   }
 
-  async function handleCreateKey() {
+  function handleCreateKey() {
     if (!newKeyName.trim()) return;
-    setIsCreating(true);
     setError(null);
-    try {
-      const created = await createApiKey(newKeyName.trim());
-      setRevealedKey(created.key);
-      setIsCreateOpen(false);
-      setNewKeyName('');
-      onCreated();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create API key.');
-    } finally {
-      setIsCreating(false);
-    }
+    createMutation.mutate(newKeyName.trim());
   }
 
   return (
@@ -273,10 +268,10 @@ export function IntegrationsPage({
               </button>
               <button
                 className="btn-primary px-3 py-2 disabled:opacity-50"
-                disabled={isCreating || !newKeyName.trim()}
+                disabled={createMutation.isPending || !newKeyName.trim()}
                 onClick={handleCreateKey}
               >
-                {isCreating ? 'Creating…' : 'Create API Key'}
+                {createMutation.isPending ? 'Creating…' : 'Create API Key'}
               </button>
             </div>
           </div>

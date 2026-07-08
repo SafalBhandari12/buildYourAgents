@@ -1,10 +1,15 @@
 import { Hono, Env } from 'hono';
 import OpenAI, { RateLimitError as OpenAIRateLimitError } from 'openai';
 import { eq, asc } from 'drizzle-orm';
-import { chatInputSchema, ingestInputSchema } from '../schema';
+import {
+  chatInputSchema,
+  ingestInputSchema,
+  estimateTokenCount,
+  DEFAULT_MAX_INPUT_TOKENS,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+} from '../schema';
 import { parseFile } from '../lib/llamaParse';
 import { asyncHandler } from '../lib/errorHandler';
-import { BadRequestError } from '../lib/errors';
 import { BetterAuthEnv, chatEnv, cloudflareAiEnv, firecrawlEnv } from '../lib/env';
 import { splitMarkdownDocument } from '../lib/splitter';
 import { vectorizeDocuments } from '../lib/vectorizeDocuments';
@@ -79,7 +84,16 @@ ai.post(
         sourceName = webUrl!;
       }
 
-      const chunks = await splitMarkdownDocument(markdown, sourceName, user.id, user.tier);
+      const m = await ensureMetrics(c.env.DB, user.id);
+      console.log(markdown);
+      const chunks = await splitMarkdownDocument(
+        markdown,
+        sourceName,
+        user.id,
+        { chunkSize: m.chunkSize, chunkOverlap: m.chunkOverlap, strategy: m.chunkingStrategy },
+        user.tier,
+      );
+      console.log(chunks);
 
       await checkMetrics(c.env.DB, user.id, chunks.length, deductedPagesCrawled);
       await deductMetrics(c.env.DB, user.id, chunks.length, deductedPagesCrawled);
@@ -100,12 +114,7 @@ ai.post(
 
       return c.json({ msg: 'Document ingested successfully', chunks: chunks.length });
     } catch (err) {
-      await refundMetrics(
-        c.env.DB,
-        user.id,
-        deductedChunks,
-        deductedPagesCrawled,
-      );
+      await refundMetrics(c.env.DB, user.id, deductedChunks, deductedPagesCrawled);
       throw err;
     }
   }),
@@ -118,6 +127,16 @@ ai.post(
     const { message } = await chatInputSchema.parseAsync(body);
     const user = c.get('user');
 
+    const db = getDb(c.env.DB);
+    const [keys, m] = await Promise.all([
+      db
+        .select()
+        .from(llmApiKeys)
+        .where(eq(llmApiKeys.userId, user.id))
+        .orderBy(asc(llmApiKeys.createdAt)),
+      ensureMetrics(c.env.DB, user.id),
+    ]);
+
     const results = await semanticSearch(c.env.AI, c.env.VECTORIZE, message, user.id);
 
     const context =
@@ -126,13 +145,19 @@ ai.post(
         : 'No relevant context found.';
 
     const sources = Array.from(
-      new Map(results.map((r) => [r.source, { source: r.source, documentTitle: r.documentTitle }])).values(),
+      new Map(
+        results.map((r) => [r.source, { source: r.source, documentTitle: r.documentTitle }]),
+      ).values(),
     );
+
+    const systemPromptText = m.systemPrompt?.trim()
+      ? m.systemPrompt
+      : "You are a helpful assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, just answer based on your own knowledge.";
 
     const messages = [
       {
         role: 'system' as const,
-        content: `You are a helpful assistant. Use the following context to answer the user's question. If the context doesn't contain relevant information, just answer based on your own knowledge.
+        content: `${systemPromptText}
 
 Context:
 ${context}`,
@@ -140,12 +165,10 @@ ${context}`,
       { role: 'user' as const, content: message },
     ];
 
-    const db = getDb(c.env.DB);
-    const [keys, m] = await Promise.all([
-      db.select().from(llmApiKeys).where(eq(llmApiKeys.userId, user.id)).orderBy(asc(llmApiKeys.createdAt)),
-      ensureMetrics(c.env.DB, user.id),
-    ]);
-    const order = resolveOrder(m.llmChainOrder, keys.map((k) => k.id));
+    const order = resolveOrder(
+      m.llmChainOrder,
+      keys.map((k) => k.id),
+    );
     const keyById = new Map(keys.map((k) => [k.id, k]));
     const now = Date.now();
 
@@ -184,6 +207,17 @@ ${context}`,
       try {
         for (const candidateId of order) {
           if (candidateId === 'platform') {
+            // The platform's own model has a fixed, non-configurable cap — user-tunable
+            // maxInputTokens/maxOutputTokens only apply once one of their own keys is serving.
+            if (estimateTokenCount(message) > DEFAULT_MAX_INPUT_TOKENS) {
+              failedAttempts.push({
+                provider: 'platform',
+                model: 'gpt-5.4-mini',
+                reason: `Message exceeds the platform's ${DEFAULT_MAX_INPUT_TOKENS} token input limit`,
+              });
+              continue;
+            }
+
             try {
               await checkQueryMetrics(c.env.DB, user.id, 10);
             } catch {
@@ -196,11 +230,16 @@ ${context}`,
             }
 
             try {
-              const client = new OpenAI({ apiKey: c.env.OPENAI_API_KEY, baseURL: c.env.AZURE_BASE_URl });
+              const client = new OpenAI({
+                apiKey: c.env.OPENAI_API_KEY,
+                baseURL: c.env.AZURE_BASE_URl,
+              });
               const stream = await client.chat.completions.create({
                 model: 'gpt-5.4-mini',
                 messages,
                 stream: true,
+                max_completion_tokens: DEFAULT_MAX_OUTPUT_TOKENS,
+                temperature: m.temperature,
               });
 
               for await (const chunk of stream) {
@@ -217,7 +256,11 @@ ${context}`,
               return;
             } catch (err) {
               console.error('Platform LLM failed:', err);
-              failedAttempts.push({ provider: 'platform', model: 'gpt-5.4-mini', reason: errorReason(err) });
+              failedAttempts.push({
+                provider: 'platform',
+                model: 'gpt-5.4-mini',
+                reason: errorReason(err),
+              });
               continue;
             }
           }
@@ -232,10 +275,24 @@ ${context}`,
             });
             continue;
           }
+          if (estimateTokenCount(message) > m.maxInputTokens) {
+            failedAttempts.push({
+              provider: row.provider,
+              model: row.model,
+              reason: `Message exceeds your configured ${m.maxInputTokens} token input limit`,
+            });
+            continue;
+          }
 
           try {
             const { client, model } = await buildClientForKey(row, c.env.LLM_KEY_ENCRYPTION_SECRET);
-            const stream = await client.chat.completions.create({ model, messages, stream: true });
+            const stream = await client.chat.completions.create({
+              model,
+              messages,
+              stream: true,
+              temperature: m.temperature,
+              max_tokens: m.maxOutputTokens,
+            });
 
             for await (const chunk of stream) {
               const delta = chunk.choices[0]?.delta?.content;
@@ -254,12 +311,17 @@ ${context}`,
                 .where(eq(llmApiKeys.id, row.id));
             }
             console.error(`LLM key ${row.id} (${row.provider}) failed:`, err);
-            failedAttempts.push({ provider: row.provider, model: row.model, reason: errorReason(err) });
+            failedAttempts.push({
+              provider: row.provider,
+              model: row.model,
+              reason: errorReason(err),
+            });
             continue;
           }
         }
 
-        responseText = 'All configured LLM providers failed or are rate-limited. Please try again shortly.';
+        responseText =
+          'All configured LLM providers failed or are rate-limited. Please try again shortly.';
         await writer.write(encoder.encode(responseText));
         await logHistory(null, null);
       } finally {

@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ApiError,
   createLlmKey,
   deleteLlmKey,
   listLlmKeys,
   updateLlmKeyOrder,
-  type LlmKeyItem,
+  type LlmKeysResponse,
   type LlmProvider,
 } from '@/lib/api';
 import { useAuthModal } from '@/components/AuthModalContext';
@@ -50,9 +51,7 @@ function formatDate(ms: number): string {
 
 export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { open } = useAuthModal();
-  const [keys, setKeys] = useState<LlmKeyItem[]>([]);
-  const [order, setOrder] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -61,39 +60,50 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
   const [model, setModel] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
 
-  async function refresh() {
-    setIsLoading(true);
-    try {
-      const data = await listLlmKeys();
-      setKeys(data.keys);
-      setOrder(data.order);
-    } catch {
-      setError('Failed to load provider keys.');
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const { data, isLoading } = useQuery({
+    queryKey: ['llm-keys'],
+    queryFn: listLlmKeys,
+    enabled: isAuthenticated,
+  });
+  const keys = data?.keys ?? [];
+  const order = data?.order ?? [];
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setKeys([]);
-      setOrder([]);
-      setIsLoading(false);
-      return;
-    }
-    refresh();
-  }, [isAuthenticated]);
-
-  async function saveOrder(next: string[]) {
-    setOrder(next);
-    try {
-      await updateLlmKeyOrder(next);
-    } catch (err) {
+  const orderMutation = useMutation({
+    mutationFn: updateLlmKeyOrder,
+    onMutate: async (newOrder) => {
+      await queryClient.cancelQueries({ queryKey: ['llm-keys'] });
+      const previous = queryClient.getQueryData<LlmKeysResponse>(['llm-keys']);
+      queryClient.setQueryData<LlmKeysResponse>(['llm-keys'], (old) =>
+        old ? { ...old, order: newOrder } : old,
+      );
+      return { previous };
+    },
+    onError: (err, _newOrder, context) => {
+      if (context?.previous) queryClient.setQueryData(['llm-keys'], context.previous);
       setError(err instanceof ApiError ? err.message : 'Failed to save order.');
-      refresh();
-    }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['llm-keys'] }),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createLlmKey,
+    onSuccess: () => {
+      setIsAddOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['llm-keys'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to add provider key.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteLlmKey,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['llm-keys'] }),
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to delete provider key.'),
+  });
+
+  function saveOrder(next: string[]) {
+    setError(null);
+    orderMutation.mutate(next);
   }
 
   function handleMove(index: number, direction: -1 | 1) {
@@ -121,36 +131,23 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
     setIsAddOpen(true);
   }
 
-  async function handleCreate() {
+  function handleCreate() {
     if (!name.trim() || !model.trim() || !apiKey.trim()) return;
     if (PROVIDERS_REQUIRING_BASE_URL.has(provider) && !baseUrl.trim()) return;
 
-    setIsCreating(true);
     setError(null);
-    try {
-      await createLlmKey({
-        provider,
-        name: name.trim(),
-        model: model.trim(),
-        apiKey: apiKey.trim(),
-        baseUrl: baseUrl.trim() || undefined,
-      });
-      setIsAddOpen(false);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to add provider key.');
-    } finally {
-      setIsCreating(false);
-    }
+    createMutation.mutate({
+      provider,
+      name: name.trim(),
+      model: model.trim(),
+      apiKey: apiKey.trim(),
+      baseUrl: baseUrl.trim() || undefined,
+    });
   }
 
-  async function handleDelete(id: string) {
-    try {
-      await deleteLlmKey(id);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete provider key.');
-    }
+  function handleDelete(id: string) {
+    setError(null);
+    deleteMutation.mutate(id);
   }
 
   const platformIncluded = order.includes('platform');
@@ -344,7 +341,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
               <button
                 className="btn-primary px-3 py-2 disabled:opacity-50"
                 disabled={
-                  isCreating ||
+                  createMutation.isPending ||
                   !name.trim() ||
                   !model.trim() ||
                   !apiKey.trim() ||
@@ -352,7 +349,7 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
                 }
                 onClick={handleCreate}
               >
-                {isCreating ? 'Adding…' : 'Add Provider Key'}
+                {createMutation.isPending ? 'Adding…' : 'Add Provider Key'}
               </button>
             </div>
           </div>

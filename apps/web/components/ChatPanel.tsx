@@ -1,8 +1,10 @@
 'use client';
 
 import { useRef, useState, type FormEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ApiError, parseRagSources, sendChatMessage, type ChatSource } from '@/lib/api';
 import { useAuthModal } from '@/components/AuthModalContext';
+import { estimateTokenCount, MAX_INPUT_TOKENS } from '@/lib/tokenEstimate';
 
 type ChatMessage = {
   id: string;
@@ -19,14 +21,9 @@ const GREETING: ChatMessage = {
     "Hello! I'm ready to answer questions based on your uploaded knowledge base. Try asking me something about a document you've ingested.",
 };
 
-export function ChatPanel({
-  isAuthenticated,
-  onMessageSent,
-}: {
-  isAuthenticated: boolean;
-  onMessageSent: () => void;
-}) {
+export function ChatPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { open } = useAuthModal();
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -37,6 +34,13 @@ export function ChatPanel({
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
     });
   }
+
+  // This is only the platform default model's fixed cap, shown as a heads-up — a message
+  // over it can still succeed if the user has an external provider key with a higher
+  // configured limit ahead of (or instead of) the platform in their fallback chain, so this
+  // never blocks sending, only informs.
+  const inputTokens = estimateTokenCount(input);
+  const overPlatformLimit = inputTokens > MAX_INPUT_TOKENS;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -80,7 +84,8 @@ export function ChatPanel({
       setMessages((prev) =>
         prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false, sources } : m)),
       );
-      onMessageSent();
+      queryClient.invalidateQueries({ queryKey: ['metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['chat-history'] });
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Something went wrong sending that message.';
@@ -153,11 +158,19 @@ export function ChatPanel({
           <button
             type="submit"
             disabled={isSending || !input.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-1000 hover:text-gray-1000 p-1 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-1000 p-1 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-lg">send</span>
           </button>
         </div>
+        {inputTokens > MAX_INPUT_TOKENS * 0.8 && (
+          <span
+            className={`text-label-12 mt-1 block ${overPlatformLimit ? 'text-amber-700' : 'text-gray-600'}`}
+          >
+            {inputTokens} / {MAX_INPUT_TOKENS} tokens
+            {overPlatformLimit ? ' — exceeds the platform default model’s limit' : ''}
+          </span>
+        )}
       </form>
     </>
   );

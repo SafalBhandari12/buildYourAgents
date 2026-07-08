@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
+    "@tanstack/react-query": "^5.101.2",
     "@xyflow/react": "^12.11.2",
     "better-auth": "^1.6.23",
     "next": "16.2.0",

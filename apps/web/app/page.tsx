@@ -13,19 +13,14 @@ import { ChatHistoryPage } from '@/components/ChatHistoryPage';
 
 export default function DashboardPage() {
   const { data: session } = authClient.useSession();
-  const [metricsVersion, setMetricsVersion] = useState(0);
   const [activePage, setActivePage] = useState<PageId>('playground');
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   const pageContent =
     activePage === 'playground' ? (
-      <WorkflowCanvas
-        isAuthenticated={!!session}
-        onIngested={() => setMetricsVersion((v) => v + 1)}
-        onMessageSent={() => setMetricsVersion((v) => v + 1)}
-      />
+      <WorkflowCanvas isAuthenticated={!!session} />
     ) : activePage === 'integrations' ? (
-      <IntegrationsPage isAuthenticated={!!session} onCreated={() => setMetricsVersion((v) => v + 1)} />
+      <IntegrationsPage isAuthenticated={!!session} />
     ) : activePage === 'api-keys' ? (
       <ApiKeysPage isAuthenticated={!!session} />
     ) : (
@@ -34,7 +29,7 @@ export default function DashboardPage() {
 
   return (
     <AuthModalProvider>
-      <TopAppBar session={session ?? null} refreshKey={metricsVersion} />
+      <TopAppBar session={session ?? null} />
       <main className={`pt-16 h-screen flex overflow-hidden ${isDesktop ? 'flex-row' : 'flex-col'}`}>
         <Sidebar
           orientation={isDesktop ? 'vertical' : 'horizontal'}

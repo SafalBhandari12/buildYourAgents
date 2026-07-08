@@ -21,8 +21,9 @@ import { NodeModal } from '@/components/NodeModal';
 import { KnowledgeBasePanel } from '@/components/KnowledgeBasePanel';
 import { ChatPanel } from '@/components/ChatPanel';
 import { ModelKeysPanel } from '@/components/ModelKeysPanel';
+import { AgentSettingsPanel } from '@/components/AgentSettingsPanel';
 
-type OpenNode = 'chat' | 'knowledge-base' | 'model' | null;
+type OpenNode = 'chat' | 'knowledge-base' | 'model' | 'agent-settings' | null;
 
 type NodeKind = 'trigger' | 'agent' | 'sub';
 
@@ -112,7 +113,7 @@ const initialNodes: Node<WorkflowNodeData>[] = [
     id: 'agent',
     type: 'workflow',
     position: { x: 300, y: 40 },
-    data: { icon: 'hub', label: 'AI Agent', sublabel: 'Orchestrator', interactive: false, kind: 'agent' },
+    data: { icon: 'hub', label: 'AI Agent', sublabel: 'Orchestrator', interactive: true, kind: 'agent' },
   },
   {
     id: 'knowledge-base',
@@ -163,15 +164,7 @@ const initialEdges: Edge[] = [
   },
 ];
 
-export function WorkflowCanvas({
-  isAuthenticated,
-  onIngested,
-  onMessageSent,
-}: {
-  isAuthenticated: boolean;
-  onIngested: () => void;
-  onMessageSent: () => void;
-}) {
+export function WorkflowCanvas({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [openNode, setOpenNode] = useState<OpenNode>(null);
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
@@ -180,6 +173,7 @@ export function WorkflowCanvas({
     if (node.id === 'chat') setOpenNode('chat');
     else if (node.id === 'knowledge-base') setOpenNode('knowledge-base');
     else if (node.id === 'model') setOpenNode('model');
+    else if (node.id === 'agent') setOpenNode('agent-settings');
   }, []);
 
   return (
@@ -207,19 +201,25 @@ export function WorkflowCanvas({
 
       {openNode === 'chat' && (
         <NodeModal title="Chat Message" icon="chat" onClose={() => setOpenNode(null)}>
-          <ChatPanel isAuthenticated={isAuthenticated} onMessageSent={onMessageSent} />
+          <ChatPanel isAuthenticated={isAuthenticated} />
         </NodeModal>
       )}
 
       {openNode === 'knowledge-base' && (
         <NodeModal title="Knowledge Base" icon="database" onClose={() => setOpenNode(null)}>
-          <KnowledgeBasePanel isAuthenticated={isAuthenticated} onIngested={onIngested} />
+          <KnowledgeBasePanel isAuthenticated={isAuthenticated} />
         </NodeModal>
       )}
 
       {openNode === 'model' && (
         <NodeModal title="Model" icon="smart_toy" onClose={() => setOpenNode(null)}>
           <ModelKeysPanel isAuthenticated={isAuthenticated} />
+        </NodeModal>
+      )}
+
+      {openNode === 'agent-settings' && (
+        <NodeModal title="AI Agent" icon="hub" onClose={() => setOpenNode(null)}>
+          <AgentSettingsPanel isAuthenticated={isAuthenticated} />
         </NodeModal>
       )}
     </div>

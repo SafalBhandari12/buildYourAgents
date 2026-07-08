@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { listChatHistory, type ChatHistoryItem, type FailedAttempt } from '@/lib/api';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { listChatHistory, type FailedAttempt } from '@/lib/api';
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
@@ -79,35 +80,27 @@ function FailedAttemptsList({ attempts }: { attempts: FailedAttempt[] }) {
 }
 
 export function ChatHistoryPage({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const [history, setHistory] = useState<ChatHistoryItem[]>([]);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setHistory([]);
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    listChatHistory(page)
-      .then((data) => {
-        setHistory(data.history);
-        setTotalPages(data.totalPages);
-        setTotal(data.total);
-      })
-      .catch(() => setError('Failed to load chat history.'))
-      .finally(() => setIsLoading(false));
-  }, [isAuthenticated, page]);
 
   useEffect(() => {
     setPage(1);
   }, [isAuthenticated]);
+
+  const {
+    data,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['chat-history', page],
+    queryFn: () => listChatHistory(page),
+    enabled: isAuthenticated,
+    placeholderData: keepPreviousData,
+  });
+
+  const history = data?.history ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
 
   function toggleExpanded(id: string) {
     setExpanded((prev) => {
@@ -131,8 +124,10 @@ export function ChatHistoryPage({ isAuthenticated }: { isAuthenticated: boolean 
       </div>
 
       <div className="px-6 py-5 flex-grow overflow-y-auto flex flex-col">
-        {error && (
-          <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2 mb-4">{error}</div>
+        {isError && (
+          <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2 mb-4">
+            Failed to load chat history.
+          </div>
         )}
 
         {isLoading && <p className="text-copy-13 text-gray-900 py-2">Loading…</p>}

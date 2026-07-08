@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getMetrics, type Metrics } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { getMetrics } from '@/lib/api';
 
 function formatCompact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}m`;
@@ -47,18 +47,12 @@ function StatChip({ label, remaining, used }: { label: string; remaining: number
   );
 }
 
-export function TopAppBar({ session, refreshKey }: { session: Session | null; refreshKey: number }) {
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-
-  useEffect(() => {
-    if (!session) {
-      setMetrics(null);
-      return;
-    }
-    getMetrics()
-      .then(setMetrics)
-      .catch(() => setMetrics(null));
-  }, [refreshKey, session]);
+export function TopAppBar({ session }: { session: Session | null }) {
+  const { data: metrics } = useQuery({
+    queryKey: ['metrics'],
+    queryFn: getMetrics,
+    enabled: !!session,
+  });
 
   return (
     <header className="bg-background-100 fixed top-0 w-full z-50 border-b border-gray-alpha-300 flex justify-between items-center px-4 md:px-6 h-16">

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
-import { ApiError, createApiKey, deleteApiKey, listApiKeys, type ApiKeyItem } from '@/lib/api';
+import { useState, type ReactNode } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError, createApiKey, deleteApiKey, listApiKeys } from '@/lib/api';
 import { useAuthModal } from '@/components/AuthModalContext';
 
 function formatDate(ms: number): string {
@@ -33,34 +34,35 @@ function formatExpiry(ms: number | null): ReactNode {
 
 export function ApiKeysPage({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { open } = useAuthModal();
-  const [keys, setKeys] = useState<ApiKeyItem[]>([]);
-  const [isLoadingKeys, setIsLoadingKeys] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
 
-  async function refreshKeys() {
-    setIsLoadingKeys(true);
-    try {
-      const list = await listApiKeys();
-      setKeys(list.sort((a, b) => b.createdAt - a.createdAt));
-    } catch {
-      setError('Failed to load API keys.');
-    } finally {
-      setIsLoadingKeys(false);
-    }
-  }
+  const { data: keys = [], isLoading: isLoadingKeys, isError: isLoadError } = useQuery({
+    queryKey: ['api-keys'],
+    queryFn: listApiKeys,
+    enabled: isAuthenticated,
+    select: (list) => [...list].sort((a, b) => b.createdAt - a.createdAt),
+  });
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setKeys([]);
-      setIsLoadingKeys(false);
-      return;
-    }
-    refreshKeys();
-  }, [isAuthenticated]);
+  const createMutation = useMutation({
+    mutationFn: createApiKey,
+    onSuccess: (created) => {
+      setRevealedKey(created.key);
+      setIsCreateOpen(false);
+      setNewKeyName('');
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to create API key.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteApiKey,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['api-keys'] }),
+    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to delete API key.'),
+  });
 
   function handleOpenCreateKey() {
     if (!isAuthenticated) {
@@ -70,30 +72,15 @@ export function ApiKeysPage({ isAuthenticated }: { isAuthenticated: boolean }) {
     setIsCreateOpen(true);
   }
 
-  async function handleCreateKey() {
+  function handleCreateKey() {
     if (!newKeyName.trim()) return;
-    setIsCreating(true);
     setError(null);
-    try {
-      const created = await createApiKey(newKeyName.trim());
-      setRevealedKey(created.key);
-      setIsCreateOpen(false);
-      setNewKeyName('');
-      await refreshKeys();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create API key.');
-    } finally {
-      setIsCreating(false);
-    }
+    createMutation.mutate(newKeyName.trim());
   }
 
-  async function handleDeleteKey(id: string) {
-    try {
-      await deleteApiKey(id);
-      setKeys((prev) => prev.filter((k) => k.id !== id));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete API key.');
-    }
+  function handleDeleteKey(id: string) {
+    setError(null);
+    deleteMutation.mutate(id);
   }
 
   return (
@@ -118,8 +105,10 @@ export function ApiKeysPage({ isAuthenticated }: { isAuthenticated: boolean }) {
       </div>
 
       <div className="px-6 py-5 flex-grow overflow-y-auto">
-        {error && (
-          <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2 mb-4">{error}</div>
+        {(error || isLoadError) && (
+          <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2 mb-4">
+            {error ?? 'Failed to load API keys.'}
+          </div>
         )}
 
         {isLoadingKeys && <p className="text-copy-13 text-gray-900 py-2">Loading…</p>}
@@ -218,10 +207,10 @@ export function ApiKeysPage({ isAuthenticated }: { isAuthenticated: boolean }) {
               </button>
               <button
                 className="btn-primary px-3 py-2 disabled:opacity-50"
-                disabled={isCreating || !newKeyName.trim()}
+                disabled={createMutation.isPending || !newKeyName.trim()}
                 onClick={handleCreateKey}
               >
-                {isCreating ? 'Creating…' : 'Create API Key'}
+                {createMutation.isPending ? 'Creating…' : 'Create API Key'}
               </button>
             </div>
           </div>
