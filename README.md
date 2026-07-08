@@ -29,17 +29,17 @@ A [Hono](https://hono.dev) app deployed as a Cloudflare Worker (see
 Routes (mounted under `/api/v1`, see `src/routes/index.ts`):
 
 | Route                 | Purpose                                                            |
-| --------------------- | ------------------------------------------------------------------- |
-| `/auth`                | Session auth via [better-auth](https://better-auth.com)            |
-| `/ingest` (root)       | Upload a file or crawl a URL into the knowledge base                |
-| `/chat` (root)         | Streaming RAG chat completion                                       |
-| `/documents`           | List/delete ingested documents                                      |
-| `/knowledge-settings`  | Chunk size/overlap configuration                                    |
-| `/agent-settings`      | System prompt, temperature, token limits                            |
-| `/llm-keys`            | Bring-your-own LLM provider keys (OpenAI, Claude, Gemini, Groq...)   |
-| `/api-keys`            | Programmatic API key management                                     |
-| `/chat-history`        | Past conversation log                                                |
-| `/metrics`             | Per-user usage/quota tracking                                        |
+| --------------------- | ------------------------------------------------------------------ |
+| `/auth`               | Session auth via [better-auth](https://better-auth.com)            |
+| `/ingest` (root)      | Upload a file or crawl a URL into the knowledge base               |
+| `/chat` (root)        | Streaming RAG chat completion                                      |
+| `/documents`          | List/delete ingested documents                                     |
+| `/knowledge-settings` | Chunk size/overlap configuration                                   |
+| `/agent-settings`     | System prompt, temperature, token limits                           |
+| `/llm-keys`           | Bring-your-own LLM provider keys (OpenAI, Claude, Gemini, Groq...) |
+| `/api-keys`           | Programmatic API key management                                    |
+| `/chat-history`       | Past conversation log                                              |
+| `/metrics`            | Per-user usage/quota tracking                                      |
 
 **Ingestion pipeline** (`/ingest`):
 
