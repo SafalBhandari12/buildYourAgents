@@ -32,10 +32,14 @@ function StatChip({ label, remaining, used }: { label: string; remaining: number
   const pct = usagePct(remaining, used);
   return (
     <div className="flex flex-col items-end gap-1">
-      <span className="text-label-12 uppercase tracking-wider text-gray-1000 font-bold">{label}</span>
+      <span className="text-label-12 uppercase tracking-wider text-gray-1000 font-bold">
+        {label}
+      </span>
       <div className={`flex items-baseline gap-0.5 ${usageTextColor(pct)}`}>
         <span className="text-label-14-mono font-semibold">{formatCompact(remaining)}</span>
-        <span className="text-label-12-mono text-gray-1000">/{formatCompact(remaining + used)}</span>
+        <span className="text-label-12-mono text-gray-1000">
+          /{formatCompact(remaining + used)}
+        </span>
       </div>
       <div className="w-14 h-1 rounded-full bg-gray-alpha-200 overflow-hidden">
         <div
@@ -63,8 +67,16 @@ export function TopAppBar({ session }: { session: Session | null }) {
 
       {metrics && (
         <div className="hidden md:flex items-center gap-5">
-          <StatChip label="Chunks" remaining={metrics.chunksRemaining} used={metrics.chunksGenerated} />
-          <StatChip label="Query" remaining={metrics.queriesRemaining} used={metrics.queriesExecuted} />
+          <StatChip
+            label="Chunks"
+            remaining={metrics.chunksRemaining}
+            used={metrics.chunksGenerated}
+          />
+          <StatChip
+            label="Query"
+            remaining={metrics.queriesRemaining}
+            used={metrics.queriesExecuted}
+          />
           <StatChip label="Tokens" remaining={metrics.tokensRemaining} used={metrics.tokensUsed} />
         </div>
       )}

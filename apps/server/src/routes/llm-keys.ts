@@ -38,7 +38,10 @@ llmKeysRoute.get(
       ensureMetrics(c.env.DB, user.id),
     ]);
 
-    const order = resolveOrder(m.llmChainOrder, keys.map((k) => k.id));
+    const order = resolveOrder(
+      m.llmChainOrder,
+      keys.map((k) => k.id),
+    );
 
     return c.json({ keys, order });
   }),
@@ -71,11 +74,20 @@ llmKeysRoute.post(
       .from(llmApiKeysTable)
       .where(eq(llmApiKeysTable.userId, user.id))
       .orderBy(asc(llmApiKeysTable.createdAt));
-    const order = resolveOrder(m.llmChainOrder, existingIds.map((k) => k.id));
+    const order = resolveOrder(
+      m.llmChainOrder,
+      existingIds.map((k) => k.id),
+    );
 
-    await db.update(metrics).set({ llmChainOrder: JSON.stringify(order) }).where(eq(metrics.userId, user.id));
+    await db
+      .update(metrics)
+      .set({ llmChainOrder: JSON.stringify(order) })
+      .where(eq(metrics.userId, user.id));
 
-    return c.json({ id, provider, name, model, baseUrl: baseUrl ?? null, createdAt: new Date().toISOString() }, 201);
+    return c.json(
+      { id, provider, name, model, baseUrl: baseUrl ?? null, createdAt: new Date().toISOString() },
+      201,
+    );
   }),
 );
 

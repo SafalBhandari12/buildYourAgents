@@ -46,7 +46,11 @@ function moveItem(order: string[], index: number, direction: -1 | 1): string[] {
 }
 
 function formatDate(ms: number): string {
-  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(ms).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
@@ -92,13 +96,15 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
       setIsAddOpen(false);
       queryClient.invalidateQueries({ queryKey: ['llm-keys'] });
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to add provider key.'),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : 'Failed to add provider key.'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteLlmKey,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['llm-keys'] }),
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to delete provider key.'),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : 'Failed to delete provider key.'),
   });
 
   function saveOrder(next: string[]) {
@@ -177,7 +183,9 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
       {isLoading && <p className="text-copy-13 text-gray-1000 py-2">Loading…</p>}
 
       {!isLoading && !isAuthenticated && (
-        <p className="text-copy-13 text-gray-1000 py-2">Sign in to configure your model providers.</p>
+        <p className="text-copy-13 text-gray-1000 py-2">
+          Sign in to configure your model providers.
+        </p>
       )}
 
       <div className="flex flex-col divide-y divide-gray-alpha-200">
@@ -204,7 +212,9 @@ export function ModelKeysPanel({ isAuthenticated }: { isAuthenticated: boolean }
                     )}
                   </div>
                   <span className="text-copy-13 text-gray-1000">
-                    {key ? `${key.model} • Added ${formatDate(key.createdAt)}` : 'Included in the platform plan'}
+                    {key
+                      ? `${key.model} • Added ${formatDate(key.createdAt)}`
+                      : 'Included in the platform plan'}
                   </span>
                 </div>
               </div>

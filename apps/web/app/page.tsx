@@ -30,7 +30,9 @@ export default function DashboardPage() {
   return (
     <AuthModalProvider>
       <TopAppBar session={session ?? null} />
-      <main className={`pt-16 h-screen flex overflow-hidden ${isDesktop ? 'flex-row' : 'flex-col'}`}>
+      <main
+        className={`pt-16 h-screen flex overflow-hidden ${isDesktop ? 'flex-row' : 'flex-col'}`}
+      >
         <Sidebar
           orientation={isDesktop ? 'vertical' : 'horizontal'}
           active={activePage}

@@ -60,7 +60,9 @@ function FailedAttemptsList({ attempts }: { attempts: FailedAttempt[] }) {
       >
         <span className="material-symbols-outlined text-sm">warning</span>
         {attempts.length} provider{attempts.length === 1 ? '' : 's'} failed before this response
-        <span className="material-symbols-outlined text-sm">{isOpen ? 'expand_less' : 'expand_more'}</span>
+        <span className="material-symbols-outlined text-sm">
+          {isOpen ? 'expand_less' : 'expand_more'}
+        </span>
       </button>
       {isOpen && (
         <div className="flex flex-col gap-1.5 pl-1">
@@ -87,11 +89,7 @@ export function ChatHistoryPage({ isAuthenticated }: { isAuthenticated: boolean 
     setPage(1);
   }, [isAuthenticated]);
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['chat-history', page],
     queryFn: () => listChatHistory(page),
     enabled: isAuthenticated,
@@ -164,12 +162,16 @@ export function ChatHistoryPage({ isAuthenticated }: { isAuthenticated: boolean 
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <span className="text-label-12 uppercase tracking-wider text-gray-600">Query</span>
+                      <span className="text-label-12 uppercase tracking-wider text-gray-600">
+                        Query
+                      </span>
                       <p className="text-copy-14 text-gray-1000 leading-relaxed">{item.message}</p>
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <span className="text-label-12 uppercase tracking-wider text-gray-600">Answer</span>
+                      <span className="text-label-12 uppercase tracking-wider text-gray-600">
+                        Answer
+                      </span>
                       <p
                         className={`text-copy-14 text-gray-1000 leading-relaxed whitespace-pre-wrap ${
                           isExpanded ? '' : 'line-clamp-3'

@@ -31,13 +31,16 @@ apiKeysRoute.post(
       prefix,
     });
 
-    return c.json({
-      id,
-      name,
-      key: rawKey,
-      prefix,
-      createdAt: new Date().toISOString(),
-    }, 201);
+    return c.json(
+      {
+        id,
+        name,
+        key: rawKey,
+        prefix,
+        createdAt: new Date().toISOString(),
+      },
+      201,
+    );
   }),
 );
 
@@ -73,9 +76,7 @@ apiKeysRoute.delete(
     const user = c.get('user');
     const db = getDb(c.env.DB);
 
-    await db
-      .delete(apiKeys)
-      .where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, user.id)));
+    await db.delete(apiKeys).where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, user.id)));
 
     return c.json({ success: true });
   }),

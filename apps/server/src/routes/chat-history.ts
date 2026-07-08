@@ -19,7 +19,8 @@ chatHistoryRoute.get(
     const db = getDb(c.env.DB);
 
     const requestedPage = Number(c.req.query('page'));
-    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+    const page =
+      Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
     const [rows, totalRow] = await Promise.all([
       db

@@ -73,7 +73,11 @@ export function Sidebar({
         ))}
       </div>
 
-      <div className={isVertical ? 'p-2 border-t border-gray-alpha-300 flex-shrink-0' : 'flex-shrink-0 pl-2'}>
+      <div
+        className={
+          isVertical ? 'p-2 border-t border-gray-alpha-300 flex-shrink-0' : 'flex-shrink-0 pl-2'
+        }
+      >
         {!session ? (
           <button
             onClick={() => open('signin')}
@@ -108,7 +112,9 @@ export function Sidebar({
                     isVertical ? 'left-0 bottom-12' : 'right-0 top-12'
                   }`}
                 >
-                  <div className="px-3 py-2 text-copy-13 text-gray-1000 truncate">{session.user.name}</div>
+                  <div className="px-3 py-2 text-copy-13 text-gray-1000 truncate">
+                    {session.user.name}
+                  </div>
                   <button
                     onClick={handleSignOut}
                     className="w-full text-left px-3 py-2 text-label-14 text-gray-1000 hover:bg-gray-alpha-200 transition-colors"

@@ -107,13 +107,25 @@ const initialNodes: Node<WorkflowNodeData>[] = [
     id: 'chat',
     type: 'workflow',
     position: { x: 20, y: 40 },
-    data: { icon: 'chat', label: 'Chat Message', sublabel: 'Trigger', interactive: true, kind: 'trigger' },
+    data: {
+      icon: 'chat',
+      label: 'Chat Message',
+      sublabel: 'Trigger',
+      interactive: true,
+      kind: 'trigger',
+    },
   },
   {
     id: 'agent',
     type: 'workflow',
     position: { x: 300, y: 40 },
-    data: { icon: 'hub', label: 'AI Agent', sublabel: 'Orchestrator', interactive: true, kind: 'agent' },
+    data: {
+      icon: 'hub',
+      label: 'AI Agent',
+      sublabel: 'Orchestrator',
+      interactive: true,
+      kind: 'agent',
+    },
   },
   {
     id: 'knowledge-base',
@@ -131,7 +143,13 @@ const initialNodes: Node<WorkflowNodeData>[] = [
     id: 'model',
     type: 'workflow',
     position: { x: 460, y: 220 },
-    data: { icon: 'smart_toy', label: 'Model', sublabel: 'Provider keys', interactive: true, kind: 'sub' },
+    data: {
+      icon: 'smart_toy',
+      label: 'Model',
+      sublabel: 'Provider keys',
+      interactive: true,
+      kind: 'sub',
+    },
   },
 ];
 

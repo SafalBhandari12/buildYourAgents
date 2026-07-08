@@ -86,7 +86,9 @@ export function AgentSettingsPanel({ isAuthenticated }: { isAuthenticated: boole
         which provider ends up serving it.
       </p>
 
-      {error && <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2">{error}</div>}
+      {error && (
+        <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2">{error}</div>
+      )}
 
       {isLoading && <p className="text-copy-13 text-gray-900 py-2">Loading…</p>}
 
@@ -117,7 +119,9 @@ export function AgentSettingsPanel({ isAuthenticated }: { isAuthenticated: boole
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <h3 className="text-label-12 uppercase tracking-wider text-gray-600">Max Input Tokens</h3>
+              <h3 className="text-label-12 uppercase tracking-wider text-gray-600">
+                Max Input Tokens
+              </h3>
               <input
                 type="number"
                 className="input-field"
@@ -126,13 +130,17 @@ export function AgentSettingsPanel({ isAuthenticated }: { isAuthenticated: boole
                 value={maxInputTokens}
                 onChange={(e) => setMaxInputTokens(Number(e.target.value))}
               />
-              <span className={`text-copy-13 ${inputOutOfRange ? 'text-red-700' : 'text-gray-600'}`}>
+              <span
+                className={`text-copy-13 ${inputOutOfRange ? 'text-red-700' : 'text-gray-600'}`}
+              >
                 Between {minTokenLimit} and {maxTokenLimit}
               </span>
             </div>
 
             <div className="flex flex-col gap-2">
-              <h3 className="text-label-12 uppercase tracking-wider text-gray-600">Max Output Tokens</h3>
+              <h3 className="text-label-12 uppercase tracking-wider text-gray-600">
+                Max Output Tokens
+              </h3>
               <input
                 type="number"
                 className="input-field"
@@ -141,7 +149,9 @@ export function AgentSettingsPanel({ isAuthenticated }: { isAuthenticated: boole
                 value={maxOutputTokens}
                 onChange={(e) => setMaxOutputTokens(Number(e.target.value))}
               />
-              <span className={`text-copy-13 ${outputOutOfRange ? 'text-red-700' : 'text-gray-600'}`}>
+              <span
+                className={`text-copy-13 ${outputOutOfRange ? 'text-red-700' : 'text-gray-600'}`}
+              >
                 Between {minTokenLimit} and {maxTokenLimit}
               </span>
             </div>
@@ -153,8 +163,12 @@ export function AgentSettingsPanel({ isAuthenticated }: { isAuthenticated: boole
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-label-12 uppercase tracking-wider text-gray-600">System Prompt</h3>
-              <span className={`text-label-12-mono ${promptOverLimit ? 'text-red-700' : 'text-gray-600'}`}>
+              <h3 className="text-label-12 uppercase tracking-wider text-gray-600">
+                System Prompt
+              </h3>
+              <span
+                className={`text-label-12-mono ${promptOverLimit ? 'text-red-700' : 'text-gray-600'}`}
+              >
                 {promptTokenCount} / {maxTokenLimit} tokens
               </span>
             </div>

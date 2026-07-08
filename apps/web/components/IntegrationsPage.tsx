@@ -158,7 +158,9 @@ export function IntegrationsPage({ isAuthenticated }: { isAuthenticated: boolean
       </div>
 
       <div className="px-6 py-5 flex-grow overflow-y-auto flex flex-col gap-6 w-full">
-        {error && <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2">{error}</div>}
+        {error && (
+          <div className="text-copy-13 text-red-900 bg-red-100 rounded-sm px-3 py-2">{error}</div>
+        )}
 
         <div className="flex flex-col gap-2">
           <h3 className="text-label-12 uppercase tracking-wider text-gray-600">Base URL</h3>
@@ -186,8 +188,8 @@ export function IntegrationsPage({ isAuthenticated }: { isAuthenticated: boolean
             <code className="font-mono text-xs text-gray-1000 bg-gray-100 border border-gray-alpha-400 px-1 py-0.5 rounded-sm">
               message
             </code>{' '}
-            field. The response streams back as
-            plain text; retrieved document sources are returned in the{' '}
+            field. The response streams back as plain text; retrieved document sources are returned
+            in the{' '}
             <code className="font-mono text-xs text-gray-1000 bg-gray-100 border border-gray-alpha-400 px-1 py-0.5 rounded-sm">
               X-RAG-Sources
             </code>{' '}
@@ -229,7 +231,9 @@ export function IntegrationsPage({ isAuthenticated }: { isAuthenticated: boolean
         </div>
 
         <div className="flex flex-col gap-2 pb-4">
-          <h3 className="text-label-12 uppercase tracking-wider text-gray-600">Ingest a Document</h3>
+          <h3 className="text-label-12 uppercase tracking-wider text-gray-600">
+            Ingest a Document
+          </h3>
           <p className="text-copy-13 text-gray-900 leading-relaxed">
             <code className="font-mono text-xs text-gray-1000 bg-gray-100 border border-gray-alpha-400 px-1 py-0.5 rounded-sm">
               POST /ingest

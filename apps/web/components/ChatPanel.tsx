@@ -90,7 +90,9 @@ export function ChatPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
       const message =
         err instanceof ApiError ? err.message : 'Something went wrong sending that message.';
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false, content: message } : m)),
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, isStreaming: false, content: message } : m,
+        ),
       );
     } finally {
       setIsSending(false);

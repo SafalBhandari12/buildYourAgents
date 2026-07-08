@@ -128,7 +128,8 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
   const deleteMutation = useMutation({
     mutationFn: deleteDocument,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Failed to remove document.'),
+    onError: (err) =>
+      setError(err instanceof ApiError ? err.message : 'Failed to remove document.'),
   });
 
   const isIngesting = ingestFileMutation.isPending || ingestUrlMutation.isPending;
@@ -264,7 +265,9 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
                   value={chunkSize}
                   onChange={(e) => setChunkSize(Number(e.target.value))}
                 />
-                <span className={`text-copy-13 ${chunkSizeOutOfRange ? 'text-red-700' : 'text-gray-600'}`}>
+                <span
+                  className={`text-copy-13 ${chunkSizeOutOfRange ? 'text-red-700' : 'text-gray-600'}`}
+                >
                   Between {minChunkSize} and {maxChunkSize}
                 </span>
               </div>
@@ -297,7 +300,11 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
               disabled={settingsMutation.isPending || !canSaveSettings}
               className="btn-primary px-3 py-1.5 self-start disabled:opacity-50"
             >
-              {settingsMutation.isPending ? 'Saving…' : settingsSaved ? 'Saved' : 'Save Chunking Settings'}
+              {settingsMutation.isPending
+                ? 'Saving…'
+                : settingsSaved
+                  ? 'Saved'
+                  : 'Save Chunking Settings'}
             </button>
           </div>
         )}

@@ -63,8 +63,9 @@ export function AuthModal({
             <span className="material-symbols-outlined text-blue-900 text-3xl">mail</span>
             <h2 className="text-heading-20 text-gray-1000">Check Your Email</h2>
             <p className="text-copy-14 text-gray-1000">
-              We sent a verification link to <span className="text-gray-1000">{submittedEmail}</span>. Verify
-              your address, then sign in below.
+              We sent a verification link to{' '}
+              <span className="text-gray-1000">{submittedEmail}</span>. Verify your address, then
+              sign in below.
             </p>
             <button
               className="btn-secondary h-10 px-4 w-full"
@@ -137,7 +138,11 @@ export function AuthModal({
                 />
               </label>
 
-              <button type="submit" disabled={isSubmitting} className="btn-primary h-10 mt-2 disabled:opacity-50">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary h-10 mt-2 disabled:opacity-50"
+              >
                 {isSubmitting
                   ? mode === 'signin'
                     ? 'Signing in…'

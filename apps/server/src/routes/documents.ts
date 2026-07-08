@@ -58,9 +58,7 @@ documentsRoute.delete(
       await c.env.VECTORIZE.deleteByIds(chunkIds);
     }
 
-    await db
-      .delete(documents)
-      .where(and(eq(documents.id, docId), eq(documents.userId, user.id)));
+    await db.delete(documents).where(and(eq(documents.id, docId), eq(documents.userId, user.id)));
 
     return c.json({ success: true });
   }),

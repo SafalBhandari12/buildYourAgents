@@ -4,6 +4,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "check-types": "tsc --noEmit",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

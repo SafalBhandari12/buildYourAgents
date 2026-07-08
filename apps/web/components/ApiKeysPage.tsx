@@ -6,7 +6,11 @@ import { ApiError, createApiKey, deleteApiKey, listApiKeys } from '@/lib/api';
 import { useAuthModal } from '@/components/AuthModalContext';
 
 function formatDate(ms: number): string {
-  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(ms).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 function formatRelative(ms: number | null): string {
@@ -40,7 +44,11 @@ export function ApiKeysPage({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [newKeyName, setNewKeyName] = useState('');
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
 
-  const { data: keys = [], isLoading: isLoadingKeys, isError: isLoadError } = useQuery({
+  const {
+    data: keys = [],
+    isLoading: isLoadingKeys,
+    isError: isLoadError,
+  } = useQuery({
     queryKey: ['api-keys'],
     queryFn: listApiKeys,
     enabled: isAuthenticated,
@@ -159,13 +167,17 @@ export function ApiKeysPage({ isAuthenticated }: { isAuthenticated: boolean }) {
               <tbody className="divide-y divide-gray-alpha-400">
                 {keys.map((key) => (
                   <tr key={key.id} className="group">
-                    <td className="py-3 pr-4 text-label-14 text-gray-1000 font-medium">{key.name}</td>
+                    <td className="py-3 pr-4 text-label-14 text-gray-1000 font-medium">
+                      {key.name}
+                    </td>
                     <td className="py-3 pr-4">
                       <code className="font-mono text-xs text-gray-900 bg-gray-100 border border-gray-alpha-400 rounded-sm px-2 py-1">
                         {key.prefix}&hellip;
                       </code>
                     </td>
-                    <td className="py-3 pr-4 text-copy-13 text-gray-600">{formatDate(key.createdAt)}</td>
+                    <td className="py-3 pr-4 text-copy-13 text-gray-600">
+                      {formatDate(key.createdAt)}
+                    </td>
                     <td className="py-3 pr-4 text-copy-13 text-gray-600">
                       {formatRelative(key.lastUsedAt)}
                     </td>
@@ -225,7 +237,9 @@ export function ApiKeysPage({ isAuthenticated }: { isAuthenticated: boolean }) {
               Copy this key now. For your security, it won&rsquo;t be shown again.
             </p>
             <div className="flex items-center gap-2 bg-gray-200 border border-gray-alpha-400 rounded-sm px-3 py-2">
-              <code className="font-mono text-xs text-gray-1000 truncate flex-grow">{revealedKey}</code>
+              <code className="font-mono text-xs text-gray-1000 truncate flex-grow">
+                {revealedKey}
+              </code>
               <button
                 className="material-symbols-outlined text-gray-600 hover:text-gray-1000 text-sm transition-colors"
                 onClick={() => navigator.clipboard.writeText(revealedKey)}

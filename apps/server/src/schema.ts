@@ -78,7 +78,8 @@ export const createLlmKeySchema = z
     baseUrl: z.url().optional(),
   })
   .refine(
-    (data) => (data.provider === 'openAiCompatible' || data.provider === 'claude' ? !!data.baseUrl : true),
+    (data) =>
+      data.provider === 'openAiCompatible' || data.provider === 'claude' ? !!data.baseUrl : true,
     { message: 'baseUrl is required for openAiCompatible and claude providers', path: ['baseUrl'] },
   );
 
