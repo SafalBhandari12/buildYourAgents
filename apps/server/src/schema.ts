@@ -43,13 +43,10 @@ export const MAX_CHUNK_SIZE = 4000;
 export const MIN_CHUNK_OVERLAP = 0;
 export const MAX_CHUNK_OVERLAP = 1000;
 
-export const chunkingStrategySchema = z.enum(['structured', 'simple']);
-
 export const knowledgeBaseSettingsInputSchema = z
   .object({
     chunkSize: z.number().int().min(MIN_CHUNK_SIZE).max(MAX_CHUNK_SIZE),
     chunkOverlap: z.number().int().min(MIN_CHUNK_OVERLAP).max(MAX_CHUNK_OVERLAP),
-    chunkingStrategy: chunkingStrategySchema,
   })
   .refine((data) => data.chunkOverlap < data.chunkSize, {
     message: 'Chunk overlap must be smaller than chunk size',
@@ -93,5 +90,4 @@ export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
 export type CreateLlmKeyInput = z.infer<typeof createLlmKeySchema>;
 export type LlmKeyOrderInput = z.infer<typeof llmKeyOrderSchema>;
 export type AgentSettingsInput = z.infer<typeof agentSettingsInputSchema>;
-export type ChunkingStrategy = z.infer<typeof chunkingStrategySchema>;
 export type KnowledgeBaseSettingsInput = z.infer<typeof knowledgeBaseSettingsInputSchema>;

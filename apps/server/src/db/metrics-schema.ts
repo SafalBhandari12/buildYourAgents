@@ -26,13 +26,9 @@ export const metrics = sqliteTable(
     maxInputTokens: integer('max_input_tokens').notNull().default(1000),
     maxOutputTokens: integer('max_output_tokens').notNull().default(500),
     // Knowledge base ingestion chunking settings, configurable from the canvas's
-    // "Knowledge Base" node. 'structured' (header-aware) is silently forced down to
-    // 'simple' (plain text) for free-tier users regardless of this setting.
+    // "Knowledge Base" node.
     chunkSize: integer('chunk_size').notNull().default(1200),
     chunkOverlap: integer('chunk_overlap').notNull().default(200),
-    chunkingStrategy: text('chunking_strategy', { enum: ['structured', 'simple'] })
-      .notNull()
-      .default('simple'),
   },
   (table) => [uniqueIndex('metrics_user_id_idx').on(table.userId)],
 );

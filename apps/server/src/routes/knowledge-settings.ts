@@ -27,7 +27,6 @@ knowledgeSettingsRoute.get(
     return c.json({
       chunkSize: m.chunkSize,
       chunkOverlap: m.chunkOverlap,
-      chunkingStrategy: m.chunkingStrategy,
       minChunkSize: MIN_CHUNK_SIZE,
       maxChunkSize: MAX_CHUNK_SIZE,
       minChunkOverlap: MIN_CHUNK_OVERLAP,
@@ -42,15 +41,11 @@ knowledgeSettingsRoute.put(
   asyncHandler<BetterAuthEnv>(async (c) => {
     const user = c.get('user');
     const body = await c.req.json();
-    const { chunkSize, chunkOverlap, chunkingStrategy } =
-      knowledgeBaseSettingsInputSchema.parse(body);
+    const { chunkSize, chunkOverlap } = knowledgeBaseSettingsInputSchema.parse(body);
 
     await ensureMetrics(c.env.DB, user.id);
     const db = getDb(c.env.DB);
-    await db
-      .update(metrics)
-      .set({ chunkSize, chunkOverlap, chunkingStrategy })
-      .where(eq(metrics.userId, user.id));
+    await db.update(metrics).set({ chunkSize, chunkOverlap }).where(eq(metrics.userId, user.id));
 
     return c.json({ success: true });
   }),

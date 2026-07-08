@@ -1,11 +1,9 @@
-import { RecursiveCharacterTextSplitter, MarkdownTextSplitter } from '@langchain/textsplitters';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { Document } from '@langchain/core/documents';
-import type { ChunkingStrategy } from '../schema';
 
 export interface ChunkingOptions {
   chunkSize: number;
   chunkOverlap: number;
-  strategy: ChunkingStrategy;
 }
 
 export interface ChunkMetadata {
@@ -113,13 +111,7 @@ export async function splitMarkdownDocument(
   source: string,
   userId: string,
   options: ChunkingOptions,
-  tier?: string,
 ): Promise<Document<ChunkMetadata>[]> {
-  // Header-aware structured splitting is a paid-tier feature — free tier is silently
-  // downgraded to plain simple splitting regardless of the user's saved preference.
-  if (tier === 'free' || options.strategy === 'simple') {
-    return splitSimpleText(markdown, source, userId, options);
-  }
   const splitter = buildSplitter(options.chunkSize, options.chunkOverlap);
   const sections = parseMarkdown(markdown);
 
@@ -202,50 +194,6 @@ export async function splitMarkdownDocument(
         }),
       );
     }
-  }
-
-  return docs;
-}
-
-async function splitSimpleText(
-  text: string,
-  source: string,
-  userId: string,
-  options: ChunkingOptions,
-): Promise<Document<ChunkMetadata>[]> {
-  const splitter = buildSplitter(options.chunkSize, options.chunkOverlap);
-  const pieces = await splitter.splitText(text);
-
-  const docs: Document<ChunkMetadata>[] = [];
-
-  for (let i = 0; i < pieces.length; i++) {
-    const dataString = `${userId}:${source}:${i}`;
-    const msgUint8 = new TextEncoder().encode(dataString);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const chunkId = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-
-    docs.push(
-      new Document({
-        pageContent: pieces[i].trim(),
-        metadata: {
-          source,
-          userId,
-          documentTitle: null,
-          h1: null,
-          h2: null,
-          h3: null,
-          h4: null,
-          h5: null,
-          h6: null,
-          title: null,
-          headerPath: 'Direct',
-          chunkIndex: i,
-          totalChunks: pieces.length,
-          chunkId,
-        },
-      }),
-    );
   }
 
   return docs;

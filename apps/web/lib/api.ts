@@ -244,12 +244,9 @@ export async function updateAgentSettings(input: {
   await throwIfNotOk(res, 'Failed to save agent settings');
 }
 
-export type ChunkingStrategy = 'structured' | 'simple';
-
 export type KnowledgeBaseSettings = {
   chunkSize: number;
   chunkOverlap: number;
-  chunkingStrategy: ChunkingStrategy;
   minChunkSize: number;
   maxChunkSize: number;
   minChunkOverlap: number;
@@ -266,7 +263,6 @@ export async function getKnowledgeBaseSettings(): Promise<KnowledgeBaseSettings>
 export async function updateKnowledgeBaseSettings(input: {
   chunkSize: number;
   chunkOverlap: number;
-  chunkingStrategy: ChunkingStrategy;
 }): Promise<void> {
   const res = await request('/knowledge-settings', { method: 'PUT', body: JSON.stringify(input) });
   await throwIfNotOk(res, 'Failed to save knowledge base settings');

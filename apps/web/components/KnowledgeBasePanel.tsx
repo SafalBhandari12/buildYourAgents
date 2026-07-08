@@ -10,7 +10,6 @@ import {
   ingestUrl,
   listDocuments,
   updateKnowledgeBaseSettings,
-  type ChunkingStrategy,
   type DocumentItem,
 } from '@/lib/api';
 import { useAuthModal } from '@/components/AuthModalContext';
@@ -43,7 +42,6 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
 
   const [chunkSize, setChunkSize] = useState(1200);
   const [chunkOverlap, setChunkOverlap] = useState(200);
-  const [chunkingStrategy, setChunkingStrategy] = useState<ChunkingStrategy>('simple');
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
@@ -56,22 +54,18 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
     if (!settings) return;
     setChunkSize(settings.chunkSize);
     setChunkOverlap(settings.chunkOverlap);
-    setChunkingStrategy(settings.chunkingStrategy);
   }, [settings]);
 
   const minChunkSize = settings?.minChunkSize ?? FALLBACK_MIN_CHUNK_SIZE;
   const maxChunkSize = settings?.maxChunkSize ?? FALLBACK_MAX_CHUNK_SIZE;
   const minChunkOverlap = settings?.minChunkOverlap ?? FALLBACK_MIN_CHUNK_OVERLAP;
   const maxChunkOverlap = settings?.maxChunkOverlap ?? FALLBACK_MAX_CHUNK_OVERLAP;
-  const isFreeTier = settings?.isFreeTier ?? false;
 
   const chunkSizeOutOfRange = chunkSize < minChunkSize || chunkSize > maxChunkSize;
   const chunkOverlapOutOfRange =
     chunkOverlap < minChunkOverlap || chunkOverlap > maxChunkOverlap || chunkOverlap >= chunkSize;
   const isSettingsDirty = settings
-    ? chunkSize !== settings.chunkSize ||
-      chunkOverlap !== settings.chunkOverlap ||
-      chunkingStrategy !== settings.chunkingStrategy
+    ? chunkSize !== settings.chunkSize || chunkOverlap !== settings.chunkOverlap
     : false;
   const canSaveSettings = !chunkSizeOutOfRange && !chunkOverlapOutOfRange && isSettingsDirty;
 
@@ -87,7 +81,7 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
   function handleSaveSettings() {
     if (!canSaveSettings) return;
     setSettingsSaved(false);
-    settingsMutation.mutate({ chunkSize, chunkOverlap, chunkingStrategy });
+    settingsMutation.mutate({ chunkSize, chunkOverlap });
   }
 
   const settingsError =
@@ -236,23 +230,6 @@ export function KnowledgeBasePanel({ isAuthenticated }: { isAuthenticated: boole
                 {settingsError}
               </div>
             )}
-
-            <div className="flex flex-col gap-2">
-              <h4 className="text-label-12 text-gray-600">Chunking Strategy</h4>
-              <select
-                className="input-field"
-                value={chunkingStrategy}
-                onChange={(e) => setChunkingStrategy(e.target.value as ChunkingStrategy)}
-              >
-                <option value="structured">Structured (splits by section headers)</option>
-                <option value="simple">Simple (plain text, no header parsing)</option>
-              </select>
-              <span className="text-copy-13 text-gray-600">
-                {isFreeTier
-                  ? 'Markdown-aware chunking requires a paid plan — your documents are chunked as plain text.'
-                  : 'Markdown-aware chunking splits by header sections first, then by size within each section.'}
-              </span>
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">

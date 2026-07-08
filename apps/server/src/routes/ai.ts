@@ -86,14 +86,10 @@ ai.post(
 
       const m = await ensureMetrics(c.env.DB, user.id);
       console.log(markdown);
-      const chunks = await splitMarkdownDocument(
-        markdown,
-        sourceName,
-        user.id,
-        { chunkSize: m.chunkSize, chunkOverlap: m.chunkOverlap, strategy: m.chunkingStrategy },
-        user.tier,
-      );
-      console.log(chunks);
+      const chunks = await splitMarkdownDocument(markdown, sourceName, user.id, {
+        chunkSize: m.chunkSize,
+        chunkOverlap: m.chunkOverlap,
+      });
 
       await checkMetrics(c.env.DB, user.id, chunks.length, deductedPagesCrawled);
       await deductMetrics(c.env.DB, user.id, chunks.length, deductedPagesCrawled);
