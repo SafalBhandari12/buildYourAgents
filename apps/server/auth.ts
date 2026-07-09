@@ -21,7 +21,7 @@ export function auth(env: BetterAuthEnv['Bindings']) {
       trustedOrigins: [env.FRONTEND_URL],
       advanced: {
         defaultCookieAttributes: {
-          sameSite: 'Strict',
+          sameSite: 'None',
           secure: true,
         },
       },
