@@ -16,6 +16,10 @@ import {
   type OnboardingFields,
   type OnboardingView,
 } from '@/components/onboarding/OnboardingModal';
+import { NavTour } from '@/components/onboarding/NavTour';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+
+type OnboardingStage = OnboardingView | 'tour' | 'wizard' | null;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,7 +27,7 @@ export default function DashboardPage() {
   const [activePage, setActivePage] = useState<PageId>('playground');
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
-  const [onboardingView, setOnboardingView] = useState<OnboardingView | null>(null);
+  const [stage, setStage] = useState<OnboardingStage>(null);
   const [onboardingInitialized, setOnboardingInitialized] = useState(false);
   const [isNewToAgents, setIsNewToAgents] = useState<boolean | null>(null);
 
@@ -39,7 +43,7 @@ export default function DashboardPage() {
     const fields = session.user as unknown as OnboardingFields;
     setIsNewToAgents(fields.isNewToAgents ?? null);
     if (!fields.onboardingAnsweredAt) {
-      setOnboardingView('question');
+      setStage('question');
     }
   }, [session, onboardingInitialized]);
 
@@ -68,7 +72,7 @@ export default function DashboardPage() {
     <AuthModalProvider>
       <TopAppBar
         session={session}
-        onOpenGuide={() => setOnboardingView(isNewToAgents === false ? 'tips' : 'guide')}
+        onOpenGuide={() => setStage(isNewToAgents === false ? 'tips' : 'tour')}
       />
       <main
         className={`pt-16 h-screen flex overflow-hidden ${isDesktop ? 'flex-row' : 'flex-col'}`}
@@ -81,14 +85,25 @@ export default function DashboardPage() {
         />
         <div className="flex-grow min-w-0 min-h-0 overflow-hidden">{pageContent}</div>
       </main>
+
       <OnboardingModal
-        view={onboardingView}
-        onClose={() => setOnboardingView(null)}
+        view={stage === 'question' || stage === 'tips' ? stage : null}
+        onClose={() => setStage(null)}
         onAnswered={(answer) => {
           setIsNewToAgents(answer);
-          setOnboardingView(answer ? 'guide' : 'tips');
+          setStage(answer ? 'tour' : 'tips');
         }}
       />
+
+      {stage === 'tour' && (
+        <NavTour
+          orientation={isDesktop ? 'vertical' : 'horizontal'}
+          onStepChange={setActivePage}
+          onFinish={() => setStage('wizard')}
+        />
+      )}
+
+      {stage === 'wizard' && <OnboardingWizard onFinish={() => setStage(null)} />}
     </AuthModalProvider>
   );
 }

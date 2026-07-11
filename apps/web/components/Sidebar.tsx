@@ -60,6 +60,7 @@ export function Sidebar({
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
+            data-tour-id={item.id}
             onClick={() => onSelect(item.id)}
             className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-label-14 font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
               active === item.id
