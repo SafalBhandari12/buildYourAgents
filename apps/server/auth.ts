@@ -33,6 +33,16 @@ export function auth(env: BetterAuthEnv['Bindings']) {
             defaultValue: 'free',
             input: false,
           },
+          onboardingAnsweredAt: {
+            type: 'date',
+            required: false,
+            input: false,
+          },
+          isNewToAgents: {
+            type: 'boolean',
+            required: false,
+            input: false,
+          },
         },
       },
       emailAndPassword: {

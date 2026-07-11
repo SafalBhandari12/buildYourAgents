@@ -84,6 +84,10 @@ export const llmKeyOrderSchema = z.object({
   order: z.array(z.string()).min(1),
 });
 
+export const onboardingInputSchema = z.object({
+  isNewToAgents: z.boolean(),
+});
+
 export type chatInputType = z.infer<typeof chatInputSchema>;
 export type ingestInputType = z.infer<typeof ingestInputSchema>;
 export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
@@ -91,3 +95,4 @@ export type CreateLlmKeyInput = z.infer<typeof createLlmKeySchema>;
 export type LlmKeyOrderInput = z.infer<typeof llmKeyOrderSchema>;
 export type AgentSettingsInput = z.infer<typeof agentSettingsInputSchema>;
 export type KnowledgeBaseSettingsInput = z.infer<typeof knowledgeBaseSettingsInputSchema>;
+export type OnboardingInput = z.infer<typeof onboardingInputSchema>;

@@ -17,6 +17,10 @@ export const users = sqliteTable('users', {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  // Set once, the first time the user answers the "first time using an AI agent platform?"
+  // onboarding question. Null means the question hasn't been asked/answered yet.
+  onboardingAnsweredAt: integer('onboarding_answered_at', { mode: 'timestamp_ms' }),
+  isNewToAgents: integer('is_new_to_agents', { mode: 'boolean' }),
 });
 
 export type User = typeof users.$inferSelect;

@@ -267,3 +267,11 @@ export async function updateKnowledgeBaseSettings(input: {
   const res = await request('/knowledge-settings', { method: 'PUT', body: JSON.stringify(input) });
   await throwIfNotOk(res, 'Failed to save knowledge base settings');
 }
+
+export async function submitOnboardingAnswer(isNewToAgents: boolean): Promise<void> {
+  const res = await request('/onboarding', {
+    method: 'PUT',
+    body: JSON.stringify({ isNewToAgents }),
+  });
+  await throwIfNotOk(res, 'Failed to save onboarding answer');
+}

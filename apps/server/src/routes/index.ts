@@ -8,6 +8,7 @@ import llmKeys from './llm-keys';
 import chatHistory from './chat-history';
 import agentSettings from './agent-settings';
 import knowledgeSettings from './knowledge-settings';
+import onboarding from './onboarding';
 
 const v1 = new Hono();
 
@@ -26,6 +27,8 @@ v1.route('/chat-history', chatHistory);
 v1.route('/agent-settings', agentSettings);
 
 v1.route('/knowledge-settings', knowledgeSettings);
+
+v1.route('/onboarding', onboarding);
 
 v1.route('/', ai);
 

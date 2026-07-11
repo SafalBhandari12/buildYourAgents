@@ -15,8 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'RAGFlow',
-  description: 'Ingest documents, test your RAG agent, and integrate it via API.',
+  title: 'Sabai — Build Your Agents',
+  description:
+    'Build a personal RAG-powered AI agent: ingest documents, test it live, and integrate it via API.',
 };
 
 export default function RootLayout({

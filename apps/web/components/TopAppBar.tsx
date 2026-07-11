@@ -51,7 +51,13 @@ function StatChip({ label, remaining, used }: { label: string; remaining: number
   );
 }
 
-export function TopAppBar({ session }: { session: Session | null }) {
+export function TopAppBar({
+  session,
+  onOpenGuide,
+}: {
+  session: Session | null;
+  onOpenGuide?: () => void;
+}) {
   const { data: metrics } = useQuery({
     queryKey: ['metrics'],
     queryFn: getMetrics,
@@ -62,24 +68,39 @@ export function TopAppBar({ session }: { session: Session | null }) {
     <header className="bg-background-100 fixed top-0 w-full z-50 border-b border-gray-alpha-300 flex justify-between items-center px-4 md:px-6 h-16">
       <div className="flex items-center gap-2">
         <span className="material-symbols-outlined text-gray-1000">dataset</span>
-        <span className="text-heading-16 text-gray-1000">RAGFlow</span>
+        <span className="text-heading-16 text-gray-1000">Sabai</span>
       </div>
 
-      {metrics && (
-        <div className="hidden md:flex items-center gap-5">
-          <StatChip
-            label="Chunks"
-            remaining={metrics.chunksRemaining}
-            used={metrics.chunksGenerated}
-          />
-          <StatChip
-            label="Query"
-            remaining={metrics.queriesRemaining}
-            used={metrics.queriesExecuted}
-          />
-          <StatChip label="Tokens" remaining={metrics.tokensRemaining} used={metrics.tokensUsed} />
-        </div>
-      )}
+      <div className="flex items-center gap-5">
+        {metrics && (
+          <div className="hidden md:flex items-center gap-5">
+            <StatChip
+              label="Chunks"
+              remaining={metrics.chunksRemaining}
+              used={metrics.chunksGenerated}
+            />
+            <StatChip
+              label="Query"
+              remaining={metrics.queriesRemaining}
+              used={metrics.queriesExecuted}
+            />
+            <StatChip
+              label="Tokens"
+              remaining={metrics.tokensRemaining}
+              used={metrics.tokensUsed}
+            />
+          </div>
+        )}
+        {onOpenGuide && (
+          <button
+            onClick={onOpenGuide}
+            title="Guide"
+            className="flex items-center justify-center w-9 h-9 rounded-md text-gray-900 hover:text-gray-1000 hover:bg-gray-alpha-200 transition-colors"
+          >
+            <span className="material-symbols-outlined text-lg">help</span>
+          </button>
+        )}
+      </div>
     </header>
   );
 }
