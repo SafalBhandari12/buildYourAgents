@@ -168,7 +168,7 @@ one-shot deploy:
 
 2. **Build and deploy web with that URL baked in.** `NEXT_PUBLIC_API_URL` is
    inlined into the client bundle at build time by Next.js — it can't be
-   supplied later as a runtime Worker var, so it must be set *before*
+   supplied later as a runtime Worker var, so it must be set _before_
    `pnpm deploy` runs:
 
    ```sh
@@ -180,7 +180,7 @@ one-shot deploy:
 3. **Point the server back at web** — update `apps/server/wrangler.jsonc`'s
    `FRONTEND_URL` var to web's real URL (used for both the CORS check in
    `src/index.ts` and better-auth's `trustedOrigins` in `auth.ts`), and set
-   the `BETTER_AUTH_URL` secret to the server's *own* URL from step 1 if it
+   the `BETTER_AUTH_URL` secret to the server's _own_ URL from step 1 if it
    isn't already. Then redeploy:
 
    ```sh
