@@ -52,7 +52,7 @@ jobs:
         run: pnpm build
 
   deploy:
-    name: Deploy apps/server to Cloudflare
+    name: Deploy apps/server and apps/web to Cloudflare
     needs: ci
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -75,10 +75,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Deploy Worker
+      - name: Deploy server Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/server
           command: deploy --minify
+
+      - name: Build and deploy web Worker
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm run deploy

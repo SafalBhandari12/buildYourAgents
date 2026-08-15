@@ -74,11 +74,17 @@ Next.js 16 (App Router, Turbopack) app with:
 - Auth via `better-auth/react`, talking to the server's `/api/v1/auth`
   endpoints.
 
+Deployed as a Cloudflare Worker via the
+[OpenNext Cloudflare adapter](https://opennext.js.org/cloudflare)
+(`@opennextjs/cloudflare`), so both `apps/server` and `apps/web` land in the
+same Cloudflare account — no separate frontend host (e.g. Vercel) required.
+
 ## Prerequisites
 
 - Node.js >= 18
 - [pnpm](https://pnpm.io) 9
-- A Cloudflare account (Workers + D1 + Vectorize) for the server
+- A Cloudflare account (Workers + D1 + Vectorize) for both the server and web
+  apps
 - API keys for the services you want to use: LlamaCloud, Firecrawl, OpenAI
   (or another LLM provider), Cloudflare AI
 
@@ -139,6 +145,51 @@ pnpm db:generate           # generate a new migration from schema changes
 pnpm db:migrate:local      # apply migrations to the local D1 database
 pnpm db:migrate:prod       # apply migrations to the remote/production D1 database
 ```
+
+### Deploying to Cloudflare
+
+Both apps deploy as Cloudflare Workers, each with their own `wrangler.jsonc`.
+Both commands run `wrangler` under the hood and pick up credentials from
+`wrangler login` or the `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` env
+vars (used in CI, see `.github/workflows/ci-cd.yml`).
+
+Because `apps/server` and `apps/web` each need the other's URL, the first
+deploy to a new Cloudflare account is a **three-step bootstrap**, not a
+one-shot deploy:
+
+1. **Deploy the server first** (its `FRONTEND_URL` var can be a placeholder
+   at this point — nothing depends on it being correct yet):
+
+   ```sh
+   cd apps/server && pnpm deploy
+   ```
+
+   Note the printed Worker URL, e.g. `https://buildyouragent.<subdomain>.workers.dev`.
+
+2. **Build and deploy web with that URL baked in.** `NEXT_PUBLIC_API_URL` is
+   inlined into the client bundle at build time by Next.js — it can't be
+   supplied later as a runtime Worker var, so it must be set *before*
+   `pnpm deploy` runs:
+
+   ```sh
+   cd apps/web && NEXT_PUBLIC_API_URL=https://buildyouragent.<subdomain>.workers.dev pnpm deploy
+   ```
+
+   Note web's printed Worker URL, e.g. `https://sabai-web.<subdomain>.workers.dev`.
+
+3. **Point the server back at web** — update `apps/server/wrangler.jsonc`'s
+   `FRONTEND_URL` var to web's real URL (used for both the CORS check in
+   `src/index.ts` and better-auth's `trustedOrigins` in `auth.ts`), and set
+   the `BETTER_AUTH_URL` secret to the server's *own* URL from step 1 if it
+   isn't already. Then redeploy:
+
+   ```sh
+   cd apps/server && pnpm deploy
+   ```
+
+Subsequent deploys of either app individually don't need this dance — only
+the first bootstrap on a fresh account, or whenever one Worker's URL changes
+(e.g. attaching a custom domain).
 
 ## Other useful commands
 

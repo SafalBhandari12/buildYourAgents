@@ -5,6 +5,10 @@
   "compatibility_date": "2026-06-27",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
+    // Still points at Vercel — update to the deployed apps/web Worker URL
+    // (e.g. https://sabai-web.<subdomain>.workers.dev) once web is cut over
+    // to Cloudflare, then redeploy. Also update the BETTER_AUTH_URL secret
+    // to this Worker's own URL if it changes (custom domain, etc.).
     "FRONTEND_URL": "https://build-your-agents-web-six.vercel.app",
   },
   "vectorize": [
